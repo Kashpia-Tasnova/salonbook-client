@@ -88,7 +88,6 @@ export default function FeaturedSalonServices() {
       className="bg-background-beige px-6 py-14 sm:px-10 sm:py-16 lg:px-12 lg:py-20"
     >
       <div className="mx-auto max-w-7xl">
-
         {/* Section heading */}
         <div className="mb-10 sm:mb-12">
           <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.3em] text-accent-brown sm:text-xs">
@@ -122,8 +121,9 @@ export default function FeaturedSalonServices() {
               >
                 {/* Service image */}
                 <Link
-                  href={`/services?service=${service.id}`}
+                  href={`/services/${service.id}`}
                   className="relative block aspect-[4/3] overflow-hidden"
+                  aria-label={`View ${service.name} details`}
                 >
                   <img
                     src={service.image}
@@ -153,6 +153,7 @@ export default function FeaturedSalonServices() {
                       <p className="text-[10px] uppercase tracking-wider text-foreground">
                         Price
                       </p>
+
                       <p className="mt-1 text-lg font-semibold text-heading">
                         ৳{service.price.toLocaleString("en-BD")}
                       </p>
@@ -162,6 +163,7 @@ export default function FeaturedSalonServices() {
                       <p className="text-[10px] uppercase tracking-wider text-foreground">
                         Duration
                       </p>
+
                       <p className="mt-1 text-sm font-medium text-heading">
                         {service.duration}
                       </p>
@@ -170,7 +172,8 @@ export default function FeaturedSalonServices() {
 
                   {/* View details button */}
                   <Link
-                    href={`/services?service=${service.id}`}
+                    href={`/services/${service.id}`}
+                    aria-label={`View details for ${service.name}`}
                     className="mt-5 flex w-full items-center justify-center gap-2 rounded-full border border-primary px-5 py-3 text-sm font-semibold text-heading transition-all duration-300 hover:bg-primary hover:text-white"
                   >
                     View Details
@@ -194,7 +197,6 @@ export default function FeaturedSalonServices() {
             Explore All Services
           </Link>
         </div>
-
       </div>
     </section>
   );
