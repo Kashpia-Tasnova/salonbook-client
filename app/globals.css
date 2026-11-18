@@ -1,112 +1,90 @@
 
 @import "tailwindcss";
 
-/* ========================================
-   SALONBOOK - GLOBAL DESIGN SYSTEM
-======================================== */
+/* =================================
+   BLUSH & BLOOM - DESIGN SYSTEM
+================================= */
 
 :root {
-  /* Background colors */
   --background: #FFFFFF;
   --background-soft: #FDFCFC;
   --background-blush: #F5ECE8;
   --background-hero: #DECDC5;
   --background-beige: #E4DBD8;
 
-  /* Accent colors */
   --primary: #B39A7D;
   --primary-hover: #C2AC88;
   --accent-nude: #D5B6A9;
   --accent-brown: #967467;
 
-  /* Text colors */
   --heading: #46322D;
   --heading-dark: #2B2927;
   --foreground: #7A7470;
 
-  /* Borders */
   --border: #E6E1DD;
-
-  /* Fonts */
-  --font-heading: Georgia, "Times New Roman", serif;
-  --font-body: Arial, Helvetica, sans-serif;
 }
 
-/* Tailwind CSS theme variables */
+/* Tailwind CSS 4 theme */
 @theme inline {
-  --color-background: var(--background);
-  --color-background-soft: var(--background-soft);
-  --color-background-blush: var(--background-blush);
-  --color-background-hero: var(--background-hero);
-  --color-background-beige: var(--background-beige);
+  --color-background: #FFFFFF;
+  --color-background-soft: #FDFCFC;
+  --color-background-blush: #F5ECE8;
+  --color-background-hero: #DECDC5;
+  --color-background-beige: #E4DBD8;
 
-  --color-primary: var(--primary);
-  --color-primary-hover: var(--primary-hover);
-  --color-accent-nude: var(--accent-nude);
-  --color-accent-brown: var(--accent-brown);
+  --color-primary: #B39A7D;
+  --color-primary-hover: #C2AC88;
+  --color-accent-nude: #D5B6A9;
+  --color-accent-brown: #967467;
 
-  --color-heading: var(--heading);
-  --color-heading-dark: var(--heading-dark);
-  --color-foreground: var(--foreground);
-  --color-border: var(--border);
+  --color-heading: #46322D;
+  --color-heading-dark: #2B2927;
+  --color-foreground: #7A7470;
+  --color-border: #E6E1DD;
 
-  --font-sans: var(--font-body);
-  --font-heading: var(--font-heading);
+  --font-heading: Georgia, "Times New Roman", serif;
+  --font-sans: Arial, Helvetica, sans-serif;
 }
 
-/* Global reset */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+/* Base styles - Tailwind utilities can override these */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
 
-html {
-  scroll-behavior: smooth;
-}
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-body);
-  font-size: 16px;
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-}
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    color: var(--heading);
+    font-family: Georgia, "Times New Roman", serif;
+    font-weight: 500;
+    line-height: 1.2;
+  }
 
-/* Headings */
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  color: var(--heading);
-  font-family: var(--font-heading);
-  font-weight: 500;
-  line-height: 1.2;
-}
+  button {
+    cursor: pointer;
+    font: inherit;
+  }
 
-/* Links */
-a {
-  color: inherit;
-  text-decoration: none;
-}
+  img {
+    display: block;
+    max-width: 100%;
+  }
 
-/* Buttons */
-button {
-  cursor: pointer;
-  font: inherit;
-}
-
-/* Images */
-img {
-  display: block;
-  max-width: 100%;
-}
-
-/* Text selection */
-::selection {
-  background: var(--background-hero);
-  color: var(--heading);
+  ::selection {
+    background: var(--background-hero);
+    color: var(--heading);
+  }
 }
