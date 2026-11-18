@@ -174,7 +174,6 @@ export default function FeaturedSalonServices() {
                     className="mt-5 flex w-full items-center justify-center gap-2 rounded-full border border-primary px-5 py-3 text-sm font-semibold text-heading transition-all duration-300 hover:bg-primary hover:text-white"
                   >
                     View Details
-                    <span>→</span>
                   </Link>
                 </div>
               </article>
