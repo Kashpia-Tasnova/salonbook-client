@@ -66,18 +66,11 @@ const categories = [
       "https://images.unsplash.com/photo-1524250502761-1ac6f2e30d43?auto=format&fit=crop&w=900&q=90",
     size: "small",
   },
-  {
-    id: "eyebrow-beauty",
-    title: "Eyebrow Beauty",
-    description: "Perfectly shaped, naturally beautiful.",
-    image:
-      "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=900&q=90",
-    size: "small",
-  },
+
 ];
 
 export default function SalonServiceCategories() {
-  const homepageCategories = categories.slice(0, 9);
+  const homepageCategories = categories.slice(0, 8);
 
   return (
     <section
@@ -149,13 +142,12 @@ export default function SalonServiceCategories() {
         </div>
 
         {/* Explore all categories */}
-        <div className="mt-10 flex justify-center">
+        <div className="mt-12 flex justify-center">
           <Link
             href="/services"
-            className="border-b border-primary pb-2 text-sm font-semibold text-heading transition-colors hover:border-accent-brown hover:text-accent-brown"
+            className="rounded-full bg-primary px-8 py-3.5 text-sm font-semibold text-white transition-all duration-300 hover:-translate-y-1 hover:bg-primary-hover"
           >
             Explore All Categories
-            <span className="ml-3">→</span>
           </Link>
         </div>
 
