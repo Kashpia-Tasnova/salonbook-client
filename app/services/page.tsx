@@ -1,8 +1,8 @@
-
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 
 const services = [
   {
@@ -73,12 +73,37 @@ const services = [
   },
 ];
 
-export default function ServicesPage() {
+// Category URL IDs and their corresponding category names
+const categoryMap: Record<string, string> = {
+  "haircut-styling": "Haircut & Styling",
+  "hair-coloring": "Hair Coloring",
+  "facial-skincare": "Facial & Skincare",
+  "manicure-pedicure": "Manicure & Pedicure",
+  "hair-treatment": "Hair Treatment",
+  makeup: "Makeup",
+  "body-spa": "Body Spa",
+  "bridal-beauty": "Bridal Beauty",
+};
+
+const categories = Object.values(categoryMap);
+
+function ServicesContent() {
+  const searchParams = useSearchParams();
+
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortOrder, setSortOrder] = useState("default");
 
-  const categories = [...new Set(services.map((service) => service.category))];
+  // Read the category from the URL when the page opens
+  useEffect(() => {
+    const categoryId = searchParams.get("category");
+
+    if (categoryId && categoryMap[categoryId]) {
+      setSelectedCategory(categoryMap[categoryId]);
+    } else {
+      setSelectedCategory("all");
+    }
+  }, [searchParams]);
 
   const filteredServices = useMemo(() => {
     let result = services.filter((service) => {
@@ -108,8 +133,14 @@ export default function ServicesPage() {
     setSortOrder("default");
   };
 
+  const selectedCategoryTitle =
+    selectedCategory === "all"
+      ? "Beauty & Wellness"
+      : selectedCategory;
+
   return (
     <main className="min-h-screen bg-background-soft">
+
       {/* Page Heading */}
       <section className="bg-background-blush px-6 py-16 sm:px-10 sm:py-20 lg:px-12">
         <div className="mx-auto max-w-7xl text-center">
@@ -133,6 +164,7 @@ export default function ServicesPage() {
       {/* Services Content */}
       <section className="px-6 py-14 sm:px-10 sm:py-16 lg:px-12 lg:py-20">
         <div className="mx-auto max-w-7xl">
+
           {/* Section Heading */}
           <div className="mb-8 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
             <div>
@@ -141,7 +173,7 @@ export default function ServicesPage() {
               </p>
 
               <h2 className="mt-2 font-heading text-2xl text-heading sm:text-3xl">
-                Beauty & Wellness
+                {selectedCategoryTitle}
               </h2>
             </div>
 
@@ -152,6 +184,7 @@ export default function ServicesPage() {
 
           {/* Search and Filters */}
           <div className="mb-10 grid grid-cols-1 gap-4 rounded-2xl border border-border bg-white p-5 sm:grid-cols-2 lg:grid-cols-3">
+
             {/* Search */}
             <div>
               <label
@@ -308,8 +341,8 @@ export default function ServicesPage() {
               </h3>
 
               <p className="mt-3 text-sm text-foreground">
-                We couldn't find any services matching your search.
-                Try another service name or category.
+                There are currently no services available in this category,
+                or no services match your search. Please explore another category.
               </p>
 
               <button
@@ -324,5 +357,21 @@ export default function ServicesPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+export default function ServicesPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-background-soft">
+          <div className="mx-auto max-w-7xl px-6 py-20 text-center text-foreground">
+            Loading services...
+          </div>
+        </main>
+      }
+    >
+      <ServicesContent />
+    </Suspense>
   );
 }
