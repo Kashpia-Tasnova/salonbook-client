@@ -26,7 +26,7 @@ export default function Appointments() {
   return (
     <section
       id="appointments"
-      className="bg-background-soft px-6 py-16 sm:px-10 sm:py-20 lg:px-12"
+      className="bg-white px-6 py-12 sm:px-10 sm:py-14 lg:px-12 lg:py-16"
     >
       <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:gap-20">
         {/* Left content */}

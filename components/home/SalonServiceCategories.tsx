@@ -75,7 +75,7 @@ export default function SalonServiceCategories() {
   return (
     <section
       id="service-categories"
-      className="bg-background-soft px-6 py-16 sm:px-10 sm:py-20 lg:px-12 lg:py-24"
+      className="bg-background-soft px-6 py-14 sm:px-10 sm:py-16 lg:px-12 lg:py-20"
     >
       <div className="mx-auto max-w-7xl">
 
