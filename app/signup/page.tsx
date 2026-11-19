@@ -1,8 +1,45 @@
-
 "use client";
 
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
+
+function PasswordEyeIcon({ visible }: { visible: boolean }) {
+  return visible ? (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="17"
+      height="17"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  ) : (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="17"
+      height="17"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="m3 3 18 18" />
+      <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+      <path d="M9.9 5.2A10.6 10.6 0 0 1 12 5c6.4 0 10 7 10 7a16 16 0 0 1-3 3.8" />
+      <path d="M6.6 6.6C3.6 8.5 2 12 2 12s3.6 7 10 7c1 0 2-.2 2.9-.5" />
+    </svg>
+  );
+}
 
 export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -59,7 +96,6 @@ export default function SignupPage() {
   return (
     <main className="min-h-screen bg-background-soft px-4 py-6 sm:px-6 sm:py-8">
       <div className="mx-auto grid max-w-5xl overflow-hidden rounded-3xl bg-white shadow-sm lg:grid-cols-2">
-
         {/* Left Side - Full Image */}
         <div className="relative hidden min-h-[650px] overflow-hidden lg:block">
           <img
@@ -90,7 +126,6 @@ export default function SignupPage() {
         {/* Right Side - Signup Form */}
         <div className="flex items-center justify-center px-6 py-7 sm:px-10 lg:px-12">
           <div className="w-full max-w-sm">
-
             {/* Brand */}
             <Link href="/" className="inline-block">
               <span className="font-heading text-xl text-heading">
@@ -163,7 +198,6 @@ export default function SignupPage() {
 
             {/* Signup Form */}
             <form onSubmit={handleSubmit} className="space-y-3">
-
               {/* Full Name */}
               <div>
                 <label
@@ -182,6 +216,7 @@ export default function SignupPage() {
                     setFormData({ ...formData, fullName: e.target.value })
                   }
                   required
+                  autoComplete="name"
                   className="w-full rounded-xl border border-border bg-background-soft px-3.5 py-2.5 text-xs text-heading outline-none transition placeholder:text-foreground/60 focus:border-primary"
                 />
               </div>
@@ -204,6 +239,7 @@ export default function SignupPage() {
                     setFormData({ ...formData, email: e.target.value })
                   }
                   required
+                  autoComplete="email"
                   className="w-full rounded-xl border border-border bg-background-soft px-3.5 py-2.5 text-xs text-heading outline-none transition placeholder:text-foreground/60 focus:border-primary"
                 />
               </div>
@@ -227,16 +263,22 @@ export default function SignupPage() {
                       setFormData({ ...formData, password: e.target.value })
                     }
                     required
-                    className="w-full rounded-xl border border-border bg-background-soft px-3.5 py-2.5 pr-16 text-xs text-heading outline-none transition placeholder:text-foreground/60 focus:border-primary"
+                    autoComplete="new-password"
+                    className="w-full rounded-xl border border-border bg-background-soft px-3.5 py-2.5 pr-10 text-xs text-heading outline-none transition placeholder:text-foreground/60 focus:border-primary"
                   />
 
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-accent-brown"
-                  >
-                    {showPassword ? "Hide" : "Show"}
-                  </button>
+                  {formData.password.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((previous) => !previous)}
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-accent-brown transition hover:text-heading"
+                    >
+                      <PasswordEyeIcon visible={showPassword} />
+                    </button>
+                  )}
                 </div>
 
                 <p className="mt-1 text-[10px] leading-4 text-foreground">
@@ -267,18 +309,26 @@ export default function SignupPage() {
                       })
                     }
                     required
-                    className="w-full rounded-xl border border-border bg-background-soft px-3.5 py-2.5 pr-16 text-xs text-heading outline-none transition placeholder:text-foreground/60 focus:border-primary"
+                    autoComplete="new-password"
+                    className="w-full rounded-xl border border-border bg-background-soft px-3.5 py-2.5 pr-10 text-xs text-heading outline-none transition placeholder:text-foreground/60 focus:border-primary"
                   />
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setShowConfirmPassword(!showConfirmPassword)
-                    }
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-accent-brown"
-                  >
-                    {showConfirmPassword ? "Hide" : "Show"}
-                  </button>
+                  {formData.confirmPassword.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowConfirmPassword((previous) => !previous)
+                      }
+                      aria-label={
+                        showConfirmPassword
+                          ? "Hide confirm password"
+                          : "Show confirm password"
+                      }
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-accent-brown transition hover:text-heading"
+                    >
+                      <PasswordEyeIcon visible={showConfirmPassword} />
+                    </button>
+                  )}
                 </div>
               </div>
 

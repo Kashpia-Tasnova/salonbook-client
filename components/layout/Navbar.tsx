@@ -15,7 +15,7 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="relative z-50 bg-white">
+    <header className="sticky top-0 z-50 w-full bg-white shadow-sm">
       <nav className="mx-auto flex h-[76px] max-w-7xl items-center justify-between px-5 sm:px-8 lg:px-12">
 
         {/* Brand */}
@@ -23,6 +23,7 @@ export default function Navbar() {
           <span className="font-heading text-[25px] font-medium tracking-wide text-heading sm:text-[28px]">
             Blush <span className="italic">&</span> Bloom
           </span>
+
           <span className="mt-1 text-[8px] font-medium uppercase tracking-[0.28em] text-accent-brown">
             Beauty Salon & Wellness Studio
           </span>
@@ -54,7 +55,7 @@ export default function Navbar() {
             href="/signup"
             className="rounded-full bg-primary px-6 py-3 text-[12px] font-semibold text-white transition-all duration-300 hover:bg-primary-hover"
           >
-            Get Started
+            Sign Up
           </Link>
         </div>
 
@@ -62,7 +63,9 @@ export default function Navbar() {
         <button
           type="button"
           onClick={() => setMenuOpen(!menuOpen)}
-          aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
+          aria-label={
+            menuOpen ? "Close navigation menu" : "Open navigation menu"
+          }
           aria-expanded={menuOpen}
           className="flex h-10 w-10 items-center justify-center text-heading md:hidden"
         >
