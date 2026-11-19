@@ -1,6 +1,6 @@
-
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import BookingForm from "./BookingForm";
 
 const services = [
   {
@@ -224,24 +224,12 @@ export default async function ServiceDetailsPage({
               </ul>
             </div>
 
-            {/* Booking Option */}
-            <div className="mt-10 rounded-2xl bg-background-blush p-6 sm:p-8">
-              <h2 className="font-heading text-2xl text-heading">
-                Ready for a little self-care?
-              </h2>
-
-              <p className="mt-3 text-sm leading-7 text-foreground">
-                Choose your preferred appointment date and time and get
-                ready to enjoy a relaxing salon experience.
-              </p>
-
-              <Link
-                href="/signin"
-                className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-primary px-7 py-4 text-sm font-semibold text-white transition duration-300 hover:bg-primary-hover"
-              >
-                Book Now
-              </Link>
-            </div>
+            {/* Appointment Booking Form */}
+            <BookingForm
+              serviceName={service.name}
+              price={service.price}
+              duration={service.duration}
+            />
           </div>
         </div>
       </section>
