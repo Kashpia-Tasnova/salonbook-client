@@ -1,7 +1,11 @@
+
 "use client";
 
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { authClient } from "@/lib/auth-client";
+import { toast } from "react-hot-toast";
 
 function PasswordEyeIcon({ visible }: { visible: boolean }) {
   return visible ? (
@@ -42,7 +46,11 @@ function PasswordEyeIcon({ visible }: { visible: boolean }) {
 }
 
 export default function SigninPage() {
+  const router = useRouter();
+
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     email: "",
@@ -51,7 +59,8 @@ export default function SigninPage() {
 
   const [error, setError] = useState("");
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  // Email and password sign in
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
@@ -65,9 +74,69 @@ export default function SigninPage() {
       return;
     }
 
-    setError(
-      "Sign in will be available after authentication is connected."
-    );
+    setIsSubmitting(true);
+
+    try {
+      const result = await authClient.signIn.email({
+        email: formData.email.trim(),
+        password: formData.password,
+        callbackURL: "/",
+      });
+
+      if (result.error) {
+        const message =
+          result.error.message || "Invalid email or password.";
+
+        setError(message);
+        toast.error(message);
+        return;
+      }
+
+      toast.success("Welcome back! You have signed in successfully.");
+
+      router.push("/");
+      router.refresh();
+    } catch (error) {
+      console.error("Sign in error:", error);
+
+      const message = "Something went wrong. Please try again.";
+
+      setError(message);
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Google sign in
+  const handleGoogleSignIn = async () => {
+    setError("");
+    setIsGoogleLoading(true);
+
+    try {
+      const result = await authClient.signIn.social({
+        provider: "google",
+        callbackURL: "/",
+      });
+
+      if (result.error) {
+        const message =
+          result.error.message || "Google sign in failed.";
+
+        setError(message);
+        toast.error(message);
+        setIsGoogleLoading(false);
+      }
+    } catch (error) {
+      console.error("Google sign in error:", error);
+
+      const message =
+        "Google sign in is unavailable. Please try again.";
+
+      setError(message);
+      toast.error(message);
+      setIsGoogleLoading(false);
+    }
   };
 
   return (
@@ -131,10 +200,9 @@ export default function SigninPage() {
             {/* Google Sign In */}
             <button
               type="button"
-              onClick={() =>
-                setError("Google authentication will be connected later.")
-              }
-              className="flex w-full items-center justify-center gap-3 rounded-full border border-border px-4 py-3 text-xs font-semibold text-heading transition hover:bg-background-soft"
+              onClick={handleGoogleSignIn}
+              disabled={isGoogleLoading || isSubmitting}
+              className="flex w-full items-center justify-center gap-3 rounded-full border border-border px-4 py-3 text-xs font-semibold text-heading transition hover:bg-background-soft disabled:cursor-not-allowed disabled:opacity-60"
             >
               <svg
                 viewBox="0 0 48 48"
@@ -162,17 +230,15 @@ export default function SigninPage() {
                 />
               </svg>
 
-              Continue with Google
+              {isGoogleLoading ? "Connecting to Google..." : "Continue with Google"}
             </button>
 
             {/* Divider */}
             <div className="my-6 flex items-center gap-3">
               <div className="h-px flex-1 bg-border" />
-
               <span className="text-[10px] text-foreground">
                 OR SIGN IN WITH EMAIL
               </span>
-
               <div className="h-px flex-1 bg-border" />
             </div>
 
@@ -198,6 +264,7 @@ export default function SigninPage() {
                   }
                   required
                   autoComplete="email"
+                  disabled={isSubmitting}
                   className="w-full rounded-xl border border-border bg-background-soft px-3.5 py-3 text-xs text-heading outline-none transition placeholder:text-foreground/60 focus:border-primary"
                 />
               </div>
@@ -222,6 +289,7 @@ export default function SigninPage() {
                     }
                     required
                     autoComplete="current-password"
+                    disabled={isSubmitting}
                     className="w-full rounded-xl border border-border bg-background-soft px-3.5 py-3 pr-10 text-xs text-heading outline-none transition placeholder:text-foreground/60 focus:border-primary"
                   />
 
@@ -253,9 +321,10 @@ export default function SigninPage() {
               {/* Submit */}
               <button
                 type="submit"
-                className="w-full rounded-full bg-primary px-5 py-3 text-xs font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-primary-hover"
+                disabled={isSubmitting || isGoogleLoading}
+                className="w-full rounded-full bg-primary px-5 py-3 text-xs font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Sign In
+                {isSubmitting ? "Signing in..." : "Sign In"}
               </button>
             </form>
 

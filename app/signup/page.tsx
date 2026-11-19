@@ -1,7 +1,10 @@
+
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { authClient } from "@/lib/auth-client";
 
 function PasswordEyeIcon({ visible }: { visible: boolean }) {
   return visible ? (
@@ -42,6 +45,9 @@ function PasswordEyeIcon({ visible }: { visible: boolean }) {
 }
 
 export default function SignupPage() {
+  const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -52,9 +58,82 @@ export default function SignupPage() {
     confirmPassword: "",
   });
 
-  const [error, setError] = useState("");
+  const [profileImage, setProfileImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState("");
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  // Profile image selection and preview
+  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setError("");
+
+    const file = e.target.files?.[0];
+
+    if (!file) return;
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+    if (!allowedTypes.includes(file.type)) {
+      setError("Please select a JPG, PNG, or WEBP image.");
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Profile image must be smaller than 5 MB.");
+      e.target.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onloadend = () => {
+      setProfileImage(file);
+      setImagePreview(reader.result as string);
+    };
+
+    reader.onerror = () => {
+      setError("Unable to preview this image. Please try another one.");
+    };
+
+    reader.readAsDataURL(file);
+  };
+
+  // Remove selected profile image
+  const removeProfileImage = () => {
+    setProfileImage(null);
+    setImagePreview("");
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  // Google signup
+  const handleGoogleSignup = async () => {
+    setError("");
+    setIsGoogleLoading(true);
+
+    try {
+      const result = await authClient.signIn.social({
+        provider: "google",
+        callbackURL: "/",
+      });
+
+      if (result.error) {
+        setError(result.error.message || "Google signup failed.");
+        setIsGoogleLoading(false);
+      }
+    } catch {
+      setError("Unable to continue with Google. Please try again.");
+      setIsGoogleLoading(false);
+    }
+  };
+
+  // Email and password signup
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
@@ -63,7 +142,7 @@ export default function SignupPage() {
       return;
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
       setError("Please enter a valid email address.");
       return;
     }
@@ -88,9 +167,65 @@ export default function SignupPage() {
       return;
     }
 
-    setError(
-      "Registration will be available after authentication is connected."
-    );
+    setIsLoading(true);
+
+    try {
+      let profileImageUrl: string | undefined;
+
+      // Upload profile image to ImgBB if the user selected one
+      if (profileImage) {
+        const uploadFormData = new FormData();
+
+        uploadFormData.append("image", profileImage);
+
+        const apiUrl =
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+        const uploadResponse = await fetch(
+          `${apiUrl}/api/upload/profile-image`,
+          {
+            method: "POST",
+            body: uploadFormData,
+          }
+        );
+
+        const uploadResult = await uploadResponse.json();
+
+        if (!uploadResponse.ok || !uploadResult.success) {
+          throw new Error(
+            uploadResult.message || "Profile image upload failed."
+          );
+        }
+
+        profileImageUrl = uploadResult.imageUrl;
+
+        if (!profileImageUrl) {
+          throw new Error("Profile image URL was not returned.");
+        }
+      }
+
+      // Create Better Auth account
+      const result = await authClient.signUp.email({
+        name: formData.fullName.trim(),
+        email: formData.email.trim(),
+        password: formData.password,
+        ...(profileImageUrl ? { image: profileImageUrl } : {}),
+      });
+
+      if (result.error) {
+        throw new Error(result.error.message || "Registration failed.");
+      }
+
+      router.push("/signin?registered=true");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -151,10 +286,9 @@ export default function SignupPage() {
             {/* Google Signup */}
             <button
               type="button"
-              onClick={() =>
-                setError("Google authentication will be connected later.")
-              }
-              className="flex w-full items-center justify-center gap-3 rounded-full border border-border px-4 py-2.5 text-xs font-semibold text-heading transition hover:bg-background-soft"
+              onClick={handleGoogleSignup}
+              disabled={isGoogleLoading || isLoading}
+              className="flex w-full items-center justify-center gap-3 rounded-full border border-border px-4 py-2.5 text-xs font-semibold text-heading transition hover:bg-background-soft disabled:cursor-not-allowed disabled:opacity-60"
             >
               <svg
                 viewBox="0 0 48 48"
@@ -182,17 +316,15 @@ export default function SignupPage() {
                 />
               </svg>
 
-              Continue with Google
+              {isGoogleLoading ? "Connecting..." : "Continue with Google"}
             </button>
 
             {/* Divider */}
             <div className="my-5 flex items-center gap-3">
               <div className="h-px flex-1 bg-border" />
-
               <span className="text-[10px] text-foreground">
                 OR SIGN UP WITH EMAIL
               </span>
-
               <div className="h-px flex-1 bg-border" />
             </div>
 
@@ -271,9 +403,7 @@ export default function SignupPage() {
                     <button
                       type="button"
                       onClick={() => setShowPassword((previous) => !previous)}
-                      aria-label={
-                        showPassword ? "Hide password" : "Show password"
-                      }
+                      aria-label={showPassword ? "Hide password" : "Show password"}
                       className="absolute right-3.5 top-1/2 -translate-y-1/2 text-accent-brown transition hover:text-heading"
                     >
                       <PasswordEyeIcon visible={showPassword} />
@@ -332,6 +462,76 @@ export default function SignupPage() {
                 </div>
               </div>
 
+              {/* Profile Image Upload */}
+              <div>
+                <label className="mb-2 block text-[11px] font-semibold text-heading">
+                  Profile Photo{" "}
+                  <span className="font-normal text-foreground">(Optional)</span>
+                </label>
+
+                <div className="flex items-center gap-4">
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-background-blush">
+                    {imagePreview ? (
+                      <img
+                        src={imagePreview}
+                        alt="Profile image preview"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="25"
+                        height="25"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="text-accent-brown"
+                        aria-hidden="true"
+                      >
+                        <circle cx="12" cy="8" r="4" />
+                        <path d="M5 21a7 7 0 0 1 14 0" />
+                      </svg>
+                    )}
+                  </div>
+
+                  <div className="min-w-0">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handleImageChange}
+                      className="hidden"
+                      id="profileImage"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="rounded-full border border-border px-3 py-2 text-[10px] font-semibold text-accent-brown transition hover:bg-background-blush"
+                    >
+                      {imagePreview ? "Change Photo" : "Upload Photo"}
+                    </button>
+
+                    {imagePreview && (
+                      <button
+                        type="button"
+                        onClick={removeProfileImage}
+                        className="ml-2 text-[10px] font-semibold text-red-600 hover:text-red-700"
+                      >
+                        Remove
+                      </button>
+                    )}
+
+                    <p className="mt-1 text-[9px] text-foreground">
+                      JPG, PNG or WEBP · Maximum 5 MB
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               {/* Error Message */}
               {error && (
                 <p
@@ -345,9 +545,10 @@ export default function SignupPage() {
               {/* Submit */}
               <button
                 type="submit"
-                className="w-full rounded-full bg-primary px-5 py-3 text-xs font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-primary-hover"
+                disabled={isLoading || isGoogleLoading}
+                className="w-full rounded-full bg-primary px-5 py-3 text-xs font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Create Account
+                {isLoading ? "Creating Account..." : "Create Account"}
               </button>
             </form>
 
