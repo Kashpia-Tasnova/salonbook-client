@@ -130,10 +130,15 @@ export default function ManageCategoriesPage() {
 
     if (!file) return;
 
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/avif",
+    ];
 
-    if (!allowedTypes.includes(file.type)) {
-      setError("Please select a JPG, PNG, or WEBP image.");
+    if (!allowedTypes.includes(file.type.toLowerCase())) {
+      setError("Please select a JPG, PNG, WEBP, or AVIF image.");
       event.target.value = "";
       return;
     }
@@ -146,7 +151,14 @@ export default function ManageCategoriesPage() {
 
     setError("");
     setSelectedFile(file);
-    setImagePreview(URL.createObjectURL(file));
+
+    setImagePreview((previousPreview) => {
+      if (previousPreview.startsWith("blob:")) {
+        URL.revokeObjectURL(previousPreview);
+      }
+
+      return URL.createObjectURL(file);
+    });
   };
 
   // Upload image to ImgBB.
@@ -336,7 +348,6 @@ export default function ManageCategoriesPage() {
   return (
     <div className="min-h-screen bg-[#FDFCFC] px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
-
         {/* Page Heading */}
         <div className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
@@ -402,7 +413,6 @@ export default function ManageCategoriesPage() {
 
         {/* Categories Container */}
         <div className="border border-[#E6E1DD] bg-white">
-
           {/* Section Header */}
           <div className="flex flex-col justify-between gap-3 border-b border-[#E6E1DD] px-5 py-5 sm:flex-row sm:items-center">
             <div>
@@ -558,7 +568,6 @@ export default function ManageCategoriesPage() {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 p-4">
           <div className="my-auto w-full max-w-xl border border-[#E6E1DD] bg-white shadow-xl">
-
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-[#E6E1DD] px-5 py-5">
               <div>
@@ -585,7 +594,6 @@ export default function ManageCategoriesPage() {
 
             {/* Category Form */}
             <form onSubmit={handleSubmit} className="space-y-5 p-5">
-
               {/* Category Name */}
               <div>
                 <label className="mb-2 block text-sm font-medium text-[#46322D]">
@@ -628,13 +636,13 @@ export default function ManageCategoriesPage() {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/jpeg,image/png,image/webp"
+                  accept="image/jpeg,image/png,image/webp,image/avif"
                   onChange={handleImageChange}
                   className="block w-full cursor-pointer border border-[#E6E1DD] p-3 text-sm text-[#7A7470] file:mr-4 file:border-0 file:bg-[#F5ECE8] file:px-4 file:py-2 file:text-xs file:font-medium file:text-[#46322D]"
                 />
 
                 <p className="mt-2 text-xs text-[#7A7470]">
-                  JPG, PNG, or WEBP. Maximum file size: 5 MB.
+                  JPG, PNG, WEBP, or AVIF. Maximum file size: 5 MB.
                   {editingCategory &&
                     " Leave empty to keep the existing image."}
                 </p>

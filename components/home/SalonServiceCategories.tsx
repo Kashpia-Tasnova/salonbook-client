@@ -1,76 +1,100 @@
 
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
-const categories = [
-  {
-    id: "haircut-styling",
-    title: "Haircut & Styling",
-    description: "Beautiful styles made just for you.",
-    image:
-      "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1000&q=90",
-    size: "large",
-  },
-  {
-    id: "hair-coloring",
-    title: "Hair Coloring",
-    description: "A fresh color, a fresh expression.",
-    image:
-      "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=900&q=90",
-    size: "small",
-  },
-  {
-    id: "facial-skincare",
-    title: "Facial & Skincare",
-    description: "Reveal your natural glow.",
-    image:
-      "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=900&q=90",
-    size: "small",
-  },
-  {
-    id: "manicure-pedicure",
-    title: "Manicure & Pedicure",
-    description: "Care in every little detail.",
-    image:
-      "https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=900&q=90",
-    size: "small",
-  },
-  {
-    id: "hair-treatment",
-    title: "Hair Treatment",
-    description: "Give your hair the care it deserves.",
-    image:
-      "https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=900&q=90",
-    size: "small",
-  },
-  {
-    id: "makeup",
-    title: "Makeup",
-    description: "Your beauty, your statement.",
-    image:
-      "https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?auto=format&fit=crop&w=1000&q=90",
-    size: "large",
-  },
-  {
-    id: "body-spa",
-    title: "Body Spa",
-    description: "Take a moment just for yourself.",
-    image:
-      "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=900&q=90",
-    size: "small",
-  },
-  {
-    id: "bridal-beauty",
-    title: "Bridal Beauty",
-    description: "Look unforgettable on your special day.",
-    image:
-      "https://images.unsplash.com/photo-1524250502761-1ac6f2e30d43?auto=format&fit=crop&w=900&q=90",
-    size: "small",
-  },
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
+interface Category {
+  _id: string;
+  name: string;
+  slug: string;
+  description: string;
+  image: string;
+  isActive: boolean;
+}
+
+interface CategoriesResponse {
+  success: boolean;
+  total: number;
+  categories: Category[];
+  message?: string;
+}
+
+// Keep the original homepage categories and their order.
+const homepageCategorySlugs = [
+  "haircut-and-styling",
+  "hair-coloring",
+  "facial-and-skincare",
+  "manicure-and-pedicure",
+  "hair-treatment",
+  "makeup",
+  "body-spa",
+  "bridal-beauty",
+];
+
+// Preserve the original larger card positions.
+const largeCategorySlugs = [
+  "haircut-and-styling",
+  "makeup",
 ];
 
 export default function SalonServiceCategories() {
-  const homepageCategories = categories.slice(0, 8);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setIsLoading(true);
+        setError("");
+
+        const response = await fetch(
+          `${API_URL}/api/protected/categories`,
+          {
+            method: "GET",
+            cache: "no-store",
+          }
+        );
+
+        const data: CategoriesResponse = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(
+            data.message || "Failed to load salon categories."
+          );
+        }
+
+        const activeCategories = data.categories || [];
+
+        // Display only the original eight homepage categories.
+        // Their order remains the same as the previous design.
+        const homepageCategories = homepageCategorySlugs
+          .map((slug) =>
+            activeCategories.find(
+              (category) =>
+                category.slug === slug && category.isActive
+            )
+          )
+          .filter((category): category is Category => Boolean(category));
+
+        setCategories(homepageCategories);
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Something went wrong while loading categories."
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   return (
     <section
@@ -98,53 +122,112 @@ export default function SalonServiceCategories() {
           </p>
         </div>
 
-        {/* Masonry-style category grid */}
-        <div className="grid grid-flow-row-dense grid-cols-1 auto-rows-[8px] gap-x-5 gap-y-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-x-6">
-
-          {homepageCategories.map((category, index) => (
-            <Link
-              key={category.id}
-              href={`/services?category=${category.id}`}
-              className={`group relative block overflow-hidden ${
-                category.size === "large"
-                  ? "row-span-[16]"
-                  : "row-span-[11]"
-              }`}
-            >
-              {/* Category image */}
-              <img
-                src={category.image}
-                alt={category.title}
-                loading="lazy"
-                className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+        {/* Loading State */}
+        {isLoading && (
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
+              <div
+                key={item}
+                className={`animate-pulse bg-[#E4DBD8] ${
+                  item === 1 || item === 6
+                    ? "h-64 sm:h-80"
+                    : "h-52 sm:h-64"
+                }`}
               />
+            ))}
+          </div>
+        )}
 
-              {/* Image overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent transition-opacity duration-300 group-hover:from-black/85" />
+        {/* Error State */}
+        {!isLoading && error && (
+          <div className="border border-red-200 bg-red-50 px-5 py-8 text-center">
+            <p className="text-sm text-red-700">{error}</p>
 
-              {/* Category information */}
-              <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6">
-                <p className="mb-2 text-[10px] font-medium tracking-[0.2em] text-white/80">
-                  {String(index + 1).padStart(2, "0")}
-                </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 bg-[#46322D] px-5 py-2.5 text-sm text-white transition hover:bg-[#967467]"
+            >
+              Try Again
+            </button>
+          </div>
+        )}
 
-                <h3 className="font-heading text-2xl text-white sm:text-3xl">
-                  {category.title}
-                </h3>
+        {/* Empty State */}
+        {!isLoading && !error && categories.length === 0 && (
+          <div className="border border-[#E6E1DD] bg-white px-5 py-12 text-center">
+            <p className="font-heading text-xl text-[#46322D]">
+              Categories Coming Soon
+            </p>
 
-                <p className="mt-2 text-xs leading-5 text-white/85 sm:text-sm">
-                  {category.description}
-                </p>
-              </div>
-            </Link>
-          ))}
+            <p className="mt-2 text-sm text-[#7A7470]">
+              Our beauty categories will be available here soon.
+            </p>
+          </div>
+        )}
 
-        </div>
+        {/* Masonry-style Category Grid */}
+        {!isLoading && !error && categories.length > 0 && (
+          <div className="grid grid-flow-row-dense grid-cols-1 auto-rows-[8px] gap-x-5 gap-y-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-x-6">
 
-        {/* Explore all categories */}
+            {categories.map((category, index) => {
+              const isLarge = largeCategorySlugs.includes(
+                category.slug
+              );
+
+              return (
+                <Link
+                  key={category._id}
+                  href={`/services?category=${encodeURIComponent(category.slug)}`}
+                  className={`group relative block overflow-hidden ${
+                    isLarge
+                      ? "row-span-[16]"
+                      : "row-span-[11]"
+                  }`}
+                >
+                  {/* Category Image */}
+                  {category.image ? (
+                    <img
+                      src={category.image}
+                      alt={category.name}
+                      loading="lazy"
+                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center bg-[#E4DBD8]">
+                      <span className="font-heading text-2xl text-[#967467]">
+                        {category.name}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Image Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent transition-opacity duration-300 group-hover:from-black/85" />
+
+                  {/* Category Information */}
+                  <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6">
+                    <p className="mb-2 text-[10px] font-medium tracking-[0.2em] text-white/80">
+                      {String(index + 1).padStart(2, "0")}
+                    </p>
+
+                    <h3 className="font-heading text-2xl text-white sm:text-3xl">
+                      {category.name}
+                    </h3>
+
+                    <p className="mt-2 text-xs leading-5 text-white/85 sm:text-sm">
+                      {category.description}
+                    </p>
+                  </div>
+                </Link>
+              );
+            })}
+
+          </div>
+        )}
+
+        {/* Explore All Categories */}
         <div className="mt-12 flex justify-center">
           <Link
-            href="/services"
+            href="/categories"
             className="rounded-full bg-primary px-8 py-3.5 text-sm font-semibold text-white transition-all duration-300 hover:-translate-y-1 hover:bg-primary-hover"
           >
             Explore All Categories

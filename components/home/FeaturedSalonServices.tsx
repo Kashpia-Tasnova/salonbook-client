@@ -1,86 +1,79 @@
 
-import Link from "next/link";
+"use client";
 
-const featuredServices = [
-  {
-    id: "hydrafacial",
-    name: "HydraFacial",
-    category: "Facial & Skincare",
-    price: 3500,
-    duration: "60 minutes",
-    description:
-      "Deeply cleanse, exfoliate, and hydrate your skin for a fresh, healthy-looking glow.",
-    image:
-      "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=900&q=90",
-    isActive: true,
-  },
-  {
-    id: "led-light-facial",
-    name: "LED Light Facial",
-    category: "Facial & Skincare",
-    price: 2500,
-    duration: "45 minutes",
-    description:
-      "Enjoy a relaxing LED light therapy treatment for healthier-looking skin.",
-    image:
-      "https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?auto=format&fit=crop&w=900&q=90",
-    isActive: true,
-  },
-  {
-    id: "layer-haircut",
-    name: "Layer Haircut",
-    category: "Haircut & Styling",
-    price: 1200,
-    duration: "45 minutes",
-    description:
-      "Add beautiful movement and shape to your hair with professionally blended layers.",
-    image:
-      "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=900&q=90",
-    isActive: true,
-  },
-  {
-    id: "keratin-treatment",
-    name: "Keratin Treatment",
-    category: "Hair Treatment",
-    price: 5500,
-    duration: "120 minutes",
-    description:
-      "Give your hair a smoother, shinier finish while helping control unwanted frizz.",
-    image:
-      "https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=900&q=90",
-    isActive: true,
-  },
-  {
-    id: "gel-manicure",
-    name: "Gel Manicure",
-    category: "Manicure & Pedicure",
-    price: 1500,
-    duration: "45 minutes",
-    description:
-      "Complete your look with beautifully polished nails and a glossy gel finish.",
-    image:
-      "https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=900&q=90",
-    isActive: true,
-  },
-  {
-    id: "bridal-makeup",
-    name: "Bridal Makeup",
-    category: "Bridal Beauty",
-    price: 8500,
-    duration: "90 minutes",
-    description:
-      "A personalized bridal makeup experience designed for your unforgettable day.",
-    image:
-      "https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?auto=format&fit=crop&w=900&q=90",
-    isActive: true,
-  },
-];
+import Link from "next/link";
+import { useEffect, useState } from "react";
+
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+interface SalonService {
+  _id: string;
+  name: string;
+  category: string | { name: string };
+  shortDescription?: string;
+  description?: string;
+  image?: string;
+  price: number;
+  duration: number;
+  isActive: boolean;
+}
 
 export default function FeaturedSalonServices() {
-  // Display only active services.
-  const activeServices = featuredServices.filter(
-    (service) => service.isActive
-  );
+  const [services, setServices] = useState<SalonService[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const fetchServices = async () => {
+      try {
+        const response = await fetch(
+          `${API_URL}/api/protected/services`,
+          {
+            cache: "no-store",
+            signal: controller.signal,
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.message || "Unable to load featured services."
+          );
+        }
+
+        const allServices: SalonService[] =
+          data.services || data.data?.services || [];
+
+        const activeServices = allServices.filter(
+          (service) => service.isActive
+        );
+
+        setServices(activeServices.slice(0, 6));
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") {
+          return;
+        }
+
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Something went wrong."
+        );
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchServices();
+
+    return () => controller.abort();
+  }, []);
 
   return (
     <section
@@ -111,78 +104,130 @@ export default function FeaturedSalonServices() {
           </div>
         </div>
 
-        {/* Featured service cards */}
-        {activeServices.length > 0 ? (
+        {/* Loading skeleton */}
+        {isLoading && (
           <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
-            {activeServices.map((service) => (
-              <article
-                key={service.id}
-                className="group overflow-hidden rounded-2xl border border-border bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div
+                key={index}
+                className="animate-pulse overflow-hidden rounded-2xl border border-border bg-white"
               >
-                {/* Service image */}
-                <Link
-                  href={`/services/${service.id}`}
-                  className="relative block aspect-[4/3] overflow-hidden"
-                  aria-label={`View ${service.name} details`}
-                >
-                  <img
-                    src={service.image}
-                    alt={service.name}
-                    loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
+                <div className="aspect-[4/3] bg-background-blush" />
 
-                  <span className="absolute left-4 top-4 rounded-full bg-white/90 px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-accent-brown backdrop-blur-sm">
-                    {service.category}
-                  </span>
-                </Link>
+                <div className="space-y-4 p-5 sm:p-6">
+                  <div className="h-7 w-3/4 rounded bg-background-blush" />
+                  <div className="h-4 w-full rounded bg-background-blush" />
+                  <div className="h-4 w-2/3 rounded bg-background-blush" />
 
-                {/* Service information */}
-                <div className="p-5 sm:p-6">
-                  <h3 className="font-heading text-2xl text-heading transition-colors group-hover:text-accent-brown">
-                    {service.name}
-                  </h3>
-
-                  <p className="mt-3 min-h-[72px] text-sm leading-6 text-foreground">
-                    {service.description}
-                  </p>
-
-                  {/* Price and duration */}
-                  <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
-                    <div>
-                      <p className="text-[10px] uppercase tracking-wider text-foreground">
-                        Price
-                      </p>
-
-                      <p className="mt-1 text-lg font-semibold text-heading">
-                        ৳{service.price.toLocaleString("en-BD")}
-                      </p>
-                    </div>
-
-                    <div className="text-right">
-                      <p className="text-[10px] uppercase tracking-wider text-foreground">
-                        Duration
-                      </p>
-
-                      <p className="mt-1 text-sm font-medium text-heading">
-                        {service.duration}
-                      </p>
-                    </div>
+                  <div className="flex justify-between border-t border-border pt-4">
+                    <div className="h-10 w-20 rounded bg-background-blush" />
+                    <div className="h-10 w-20 rounded bg-background-blush" />
                   </div>
 
-                  {/* View details button */}
-                  <Link
-                    href={`/services/${service.id}`}
-                    aria-label={`View details for ${service.name}`}
-                    className="mt-5 flex w-full items-center justify-center gap-2 rounded-full border border-primary px-5 py-3 text-sm font-semibold text-heading transition-all duration-300 hover:bg-primary hover:text-white"
-                  >
-                    View Details
-                  </Link>
+                  <div className="h-11 rounded-full bg-background-blush" />
                 </div>
-              </article>
+              </div>
             ))}
           </div>
-        ) : (
+        )}
+
+        {/* Error message */}
+        {!isLoading && error && (
+          <p className="py-12 text-center text-sm text-red-600">
+            {error}
+          </p>
+        )}
+
+        {/* Featured service cards */}
+        {!isLoading && !error && services.length > 0 && (
+          <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
+            {services.map((service) => {
+              const categoryName =
+                typeof service.category === "string"
+                  ? service.category
+                  : service.category?.name || "Uncategorized";
+
+              return (
+                <article
+                  key={service._id}
+                  className="group overflow-hidden rounded-2xl border border-border bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+                >
+                  {/* Service image */}
+                  <Link
+                    href={`/services/${service._id}`}
+                    className="relative block aspect-[4/3] overflow-hidden bg-background-blush"
+                    aria-label={`View ${service.name} details`}
+                  >
+                    {service.image ? (
+                      <img
+                        src={service.image}
+                        alt={service.name}
+                        loading="lazy"
+                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-sm text-foreground">
+                        No image available
+                      </div>
+                    )}
+
+                    <span className="absolute left-4 top-4 rounded-full bg-white/90 px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-accent-brown backdrop-blur-sm">
+                      {categoryName}
+                    </span>
+                  </Link>
+
+                  {/* Service information */}
+                  <div className="p-5 sm:p-6">
+                    <h3 className="font-heading text-2xl text-heading transition-colors group-hover:text-accent-brown">
+                      {service.name}
+                    </h3>
+
+                    <p className="mt-3 min-h-[72px] text-sm leading-6 text-foreground">
+                      {service.shortDescription ||
+                        service.description ||
+                        "Discover this treatment at Blush & Bloom."}
+                    </p>
+
+                    {/* Price and duration */}
+                    <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wider text-foreground">
+                          Price
+                        </p>
+
+                        <p className="mt-1 text-lg font-semibold text-heading">
+                          ৳{service.price.toLocaleString("en-BD")}
+                        </p>
+                      </div>
+
+                      <div className="text-right">
+                        <p className="text-[10px] uppercase tracking-wider text-foreground">
+                          Duration
+                        </p>
+
+                        <p className="mt-1 text-sm font-medium text-heading">
+                          {service.duration} minutes
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* View details */}
+                    <Link
+                      href={`/services/${service._id}`}
+                      aria-label={`View details for ${service.name}`}
+                      className="mt-5 flex w-full items-center justify-center gap-2 rounded-full border border-primary px-5 py-3 text-sm font-semibold text-heading transition-all duration-300 hover:bg-primary hover:text-white"
+                    >
+                      View Details
+                    </Link>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!isLoading && !error && services.length === 0 && (
           <p className="py-12 text-center text-sm text-foreground">
             No featured services are currently available.
           </p>

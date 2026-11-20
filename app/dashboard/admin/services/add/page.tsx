@@ -1,12 +1,19 @@
 
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+interface Category {
+  _id: string;
+  name: string;
+  slug: string;
+  isActive: boolean;
+}
 
 export default function AddServicePage() {
   const router = useRouter();
@@ -22,8 +29,71 @@ export default function AddServicePage() {
     whatToExpect: [""],
   });
 
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  const [categoryError, setCategoryError] = useState("");
+
+  const [imagePreview, setImagePreview] = useState("");
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [imageError, setImageError] = useState("");
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  // Fetch active categories
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const fetchCategories = async () => {
+      try {
+        setIsLoadingCategories(true);
+        setCategoryError("");
+
+        const response = await fetch(
+          `${API_URL}/api/protected/categories`,
+          {
+            cache: "no-store",
+            signal: controller.signal,
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.message || "Failed to load categories."
+          );
+        }
+
+        const fetchedCategories: Category[] =
+          Array.isArray(data.categories)
+            ? data.categories
+            : Array.isArray(data.data)
+              ? data.data
+              : [];
+
+        setCategories(
+          fetchedCategories.filter((category) => category.isActive)
+        );
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") return;
+
+        setCategoryError(
+          err instanceof Error
+            ? err.message
+            : "Unable to load categories."
+        );
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoadingCategories(false);
+        }
+      }
+    };
+
+    fetchCategories();
+
+    return () => controller.abort();
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -36,6 +106,80 @@ export default function AddServicePage() {
       ...previous,
       [name]: value,
     }));
+  };
+
+  // Upload selected image to ImgBB through the backend
+  const handleImageChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+
+    if (!file) return;
+
+    setImageError("");
+    setError("");
+
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/avif",
+    ];
+
+    if (!allowedTypes.includes(file.type.toLowerCase())) {
+      setImageError("Please select a JPG, PNG, WEBP, or AVIF image.");
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setImageError("Image size must be less than 5 MB.");
+      e.target.value = "";
+      return;
+    }
+
+    const localPreview = URL.createObjectURL(file);
+    setImagePreview(localPreview);
+    setFormData((previous) => ({ ...previous, image: "" }));
+
+    try {
+      setIsUploadingImage(true);
+
+      const uploadData = new FormData();
+      uploadData.append("image", file);
+
+      const response = await fetch(
+        `${API_URL}/api/upload/service-image`,
+        {
+          method: "POST",
+          credentials: "include",
+          body: uploadData,
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.imageUrl) {
+        throw new Error(data.message || "Image upload failed.");
+      }
+
+      setFormData((previous) => ({
+        ...previous,
+        image: data.imageUrl,
+      }));
+
+      setImagePreview(data.imageUrl);
+    } catch (err) {
+      setImageError(
+        err instanceof Error
+          ? err.message
+          : "Unable to upload image. Please try again."
+      );
+      setImagePreview("");
+    } finally {
+      setIsUploadingImage(false);
+      e.target.value = "";
+    }
   };
 
   const handleExpectationChange = (index: number, value: string) => {
@@ -70,8 +214,22 @@ export default function AddServicePage() {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
     setError("");
+
+    if (isUploadingImage) {
+      setError("Please wait until the image upload is complete.");
+      return;
+    }
+
+    if (!formData.image) {
+      setImageError("Please upload a service image from your device.");
+      return;
+    }
+
+    if (categories.length === 0) {
+      setError("Please create or activate a category before adding a service.");
+      return;
+    }
 
     const expectations = formData.whatToExpect
       .map((item) => item.trim())
@@ -119,7 +277,7 @@ export default function AddServicePage() {
             category: formData.category,
             shortDescription: formData.shortDescription.trim(),
             description: formData.description.trim(),
-            image: formData.image.trim(),
+            image: formData.image,
             price: Number(formData.price),
             duration: Number(formData.duration),
             whatToExpect: expectations,
@@ -178,7 +336,6 @@ export default function AddServicePage() {
           </p>
         </div>
 
-        {/* Form */}
         <form
           onSubmit={handleSubmit}
           className="border border-[#E6E1DD] bg-white p-5 sm:p-8"
@@ -211,6 +368,7 @@ export default function AddServicePage() {
             />
           </div>
 
+          {/* Dynamic Categories */}
           <div className="mb-5">
             <label className={labelClass}>
               Service Category *
@@ -221,17 +379,37 @@ export default function AddServicePage() {
               value={formData.category}
               onChange={handleChange}
               required
-              className={inputClass}
+              disabled={isLoadingCategories || categories.length === 0}
+              className={`${inputClass} disabled:cursor-not-allowed disabled:bg-[#FDFCFC]`}
             >
-              <option value="">Select a category</option>
-              <option value="Facial">Facial</option>
-              <option value="Hair">Hair</option>
-              <option value="Nails">Nails</option>
-              <option value="Makeup">Makeup</option>
-              <option value="Spa & Wellness">Spa & Wellness</option>
-              <option value="Waxing">Waxing</option>
-              <option value="Other">Other</option>
+              <option value="">
+                {isLoadingCategories
+                  ? "Loading categories..."
+                  : categories.length === 0
+                    ? "No active categories available"
+                    : "Select a category"}
+              </option>
+
+              {categories.map((category) => (
+                <option key={category._id} value={category.name}>
+                  {category.name}
+                </option>
+              ))}
             </select>
+
+            {categoryError && (
+              <p className="mt-2 text-xs text-red-600">
+                {categoryError}
+              </p>
+            )}
+
+            {!isLoadingCategories &&
+              !categoryError &&
+              categories.length === 0 && (
+                <p className="mt-2 text-xs text-[#7A7470]">
+                  Please add or activate a category from Manage Categories.
+                </p>
+              )}
           </div>
 
           <div className="mb-5">
@@ -276,43 +454,61 @@ export default function AddServicePage() {
             </p>
           </div>
 
+          {/* Device Image Upload */}
           <div className="mb-8 border-t border-[#E6E1DD] pt-7">
             <h2 className="mb-1 font-serif text-xl text-[#46322D]">
               Service Image
             </h2>
 
             <p className="mb-5 text-xs text-[#7A7470]">
-              Provide a publicly accessible HTTPS image URL.
+              Upload a service image directly from your device.
+              JPG, PNG, WEBP, or AVIF. Maximum size: 5 MB.
             </p>
 
             <label className={labelClass}>
-              Image URL *
+              Upload Image *
             </label>
 
             <input
-              type="url"
-              name="image"
-              value={formData.image}
-              onChange={handleChange}
-              placeholder="https://example.com/service-image.jpg"
-              required
-              className={inputClass}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/avif"
+              onChange={handleImageChange}
+              disabled={isUploadingImage}
+              className="block w-full cursor-pointer border border-[#E6E1DD] bg-white text-sm text-[#7A7470] file:mr-4 file:border-0 file:bg-[#F5ECE8] file:px-5 file:py-3 file:text-sm file:font-medium file:text-[#46322D] hover:file:bg-[#E4DBD8] disabled:cursor-not-allowed"
             />
 
-            {formData.image && (
+            {isUploadingImage && (
+              <div className="mt-3 flex items-center gap-2 text-sm text-[#967467]">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#D5B6A9] border-t-[#46322D]" />
+                Uploading image...
+              </div>
+            )}
+
+            {imageError && (
+              <p className="mt-2 text-sm text-red-600">
+                {imageError}
+              </p>
+            )}
+
+            {imagePreview && (
               <div className="mt-4">
                 <p className="mb-2 text-xs text-[#7A7470]">
                   Image Preview
                 </p>
 
-                <img
-                  src={formData.image}
-                  alt="Service preview"
-                  className="h-40 w-48 border border-[#E6E1DD] object-cover"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                  }}
-                />
+                <div className="relative h-40 w-48 overflow-hidden border border-[#E6E1DD] bg-[#F5ECE8]">
+                  <img
+                    src={imagePreview}
+                    alt="Service preview"
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+
+                {formData.image && (
+                  <p className="mt-2 text-xs text-green-700">
+                    Image uploaded successfully.
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -434,10 +630,18 @@ export default function AddServicePage() {
 
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={
+                isSubmitting ||
+                isUploadingImage ||
+                isLoadingCategories ||
+                categories.length === 0 ||
+                !formData.image
+              }
               className="bg-[#46322D] px-7 py-3 text-sm font-medium text-white transition hover:bg-[#967467] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isSubmitting ? "Creating Service..." : "Create Service"}
+              {isSubmitting
+                ? "Creating Service..."
+                : "Create Service"}
             </button>
           </div>
         </form>

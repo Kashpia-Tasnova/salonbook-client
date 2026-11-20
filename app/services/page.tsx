@@ -20,10 +20,28 @@ interface Service {
   isActive: boolean;
 }
 
+interface Category {
+  _id: string;
+  name: string;
+  slug: string;
+  description: string;
+  image: string;
+  isActive: boolean;
+}
+
+interface CategoriesResponse {
+  success: boolean;
+  total: number;
+  categories: Category[];
+  message?: string;
+}
+
 function ServicesContent() {
   const searchParams = useSearchParams();
 
   const [services, setServices] = useState<Service[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortOrder, setSortOrder] = useState("default");
@@ -31,32 +49,53 @@ function ServicesContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Fetch active services from the backend
+  // Fetch active services and categories from the backend
   useEffect(() => {
     const controller = new AbortController();
 
-    const fetchServices = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
         setError("");
 
-        const response = await fetch(
-          `${API_URL}/api/protected/services`,
-          {
-            method: "GET",
-            signal: controller.signal,
-          }
-        );
+        const [servicesResponse, categoriesResponse] =
+          await Promise.all([
+            fetch(`${API_URL}/api/protected/services`, {
+              method: "GET",
+              signal: controller.signal,
+              cache: "no-store",
+            }),
+            fetch(`${API_URL}/api/protected/categories`, {
+              method: "GET",
+              signal: controller.signal,
+              cache: "no-store",
+            }),
+          ]);
 
-        const data = await response.json();
+        const servicesData = await servicesResponse.json();
 
-        if (!response.ok || !data.success) {
+        const categoriesData: CategoriesResponse =
+          await categoriesResponse.json();
+
+        if (!servicesResponse.ok || !servicesData.success) {
           throw new Error(
-            data.message || "Failed to load salon services."
+            servicesData.message || "Failed to load salon services."
           );
         }
 
-        setServices(data.services || []);
+        if (!categoriesResponse.ok || !categoriesData.success) {
+          throw new Error(
+            categoriesData.message || "Failed to load categories."
+          );
+        }
+
+        setServices(servicesData.services || []);
+
+        setCategories(
+          (categoriesData.categories || []).filter(
+            (category) => category.isActive
+          )
+        );
       } catch (err) {
         if (err instanceof Error && err.name === "AbortError") {
           return;
@@ -74,19 +113,12 @@ function ServicesContent() {
       }
     };
 
-    fetchServices();
+    fetchData();
 
     return () => controller.abort();
   }, []);
 
-  // Get unique categories from the fetched services
-  const categories = useMemo(() => {
-    return Array.from(
-      new Set(services.map((service) => service.category))
-    ).sort();
-  }, [services]);
-
-  // Convert category names into URL-friendly values
+  // Convert category names into URL-friendly slugs
   const slugify = (value: string) =>
     value
       .toLowerCase()
@@ -95,34 +127,37 @@ function ServicesContent() {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "");
 
-  // Read the category from the URL
+  // Read category from URL and match it with the database category
   useEffect(() => {
     const categoryParam = searchParams.get("category");
 
-    if (categoryParam) {
-      const matchedCategory = categories.find(
-        (category) =>
-          slugify(category) === categoryParam.toLowerCase() ||
-          category.toLowerCase() === categoryParam.toLowerCase()
-      );
-
-      setSelectedCategory(matchedCategory || "all");
-    } else {
+    if (!categoryParam) {
       setSelectedCategory("all");
+      return;
     }
+
+    const matchedCategory = categories.find(
+      (category) =>
+        category.slug.toLowerCase() === categoryParam.toLowerCase() ||
+        slugify(category.name) === categoryParam.toLowerCase()
+    );
+
+    setSelectedCategory(
+      matchedCategory ? matchedCategory.name : "all"
+    );
   }, [searchParams, categories]);
 
   // Search, filter and sort services
   const filteredServices = useMemo(() => {
     let result = services.filter((service) => {
-      const matchesSearch =
-        service.name
-          .toLowerCase()
-          .includes(search.trim().toLowerCase());
+      const matchesSearch = service.name
+        .toLowerCase()
+        .includes(search.trim().toLowerCase());
 
       const matchesCategory =
         selectedCategory === "all" ||
-        service.category === selectedCategory;
+        service.category.trim().toLowerCase() ===
+          selectedCategory.trim().toLowerCase();
 
       return matchesSearch && matchesCategory;
     });
@@ -136,10 +171,14 @@ function ServicesContent() {
     return result;
   }, [services, search, selectedCategory, sortOrder]);
 
+  // Clear search and filters
   const clearFilters = () => {
     setSearch("");
     setSelectedCategory("all");
     setSortOrder("default");
+
+    // Remove category from URL
+    window.history.replaceState(null, "", "/services");
   };
 
   const selectedCategoryTitle =
@@ -246,8 +285,8 @@ function ServicesContent() {
                 <option value="all">All Categories</option>
 
                 {categories.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
+                  <option key={category._id} value={category.name}>
+                    {category.name}
                   </option>
                 ))}
               </select>

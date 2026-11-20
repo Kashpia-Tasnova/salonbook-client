@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "react-hot-toast";
 
@@ -47,6 +47,7 @@ function PasswordEyeIcon({ visible }: { visible: boolean }) {
 
 export default function SigninPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -58,6 +59,16 @@ export default function SigninPage() {
   });
 
   const [error, setError] = useState("");
+
+  // Determine where the user should go after signing in.
+  const redirectParam = searchParams.get("redirect");
+
+  const redirectTo =
+    redirectParam &&
+    redirectParam.startsWith("/") &&
+    !redirectParam.startsWith("//")
+      ? redirectParam
+      : "/";
 
   // Email and password sign in
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -80,7 +91,7 @@ export default function SigninPage() {
       const result = await authClient.signIn.email({
         email: formData.email.trim(),
         password: formData.password,
-        callbackURL: "/",
+        callbackURL: redirectTo,
       });
 
       if (result.error) {
@@ -94,7 +105,7 @@ export default function SigninPage() {
 
       toast.success("Welcome back! You have signed in successfully.");
 
-      router.push("/");
+      router.replace(redirectTo);
       router.refresh();
     } catch (error) {
       console.error("Sign in error:", error);
@@ -115,9 +126,9 @@ export default function SigninPage() {
 
     try {
       const result = await authClient.signIn.social({
-  provider: "google",
-  callbackURL: "http://localhost:3000/",
-});
+        provider: "google",
+        callbackURL: redirectTo,
+      });
 
       if (result.error) {
         const message =
@@ -230,15 +241,19 @@ export default function SigninPage() {
                 />
               </svg>
 
-              {isGoogleLoading ? "Connecting to Google..." : "Continue with Google"}
+              {isGoogleLoading
+                ? "Connecting to Google..."
+                : "Continue with Google"}
             </button>
 
             {/* Divider */}
             <div className="my-6 flex items-center gap-3">
               <div className="h-px flex-1 bg-border" />
+
               <span className="text-[10px] text-foreground">
                 OR SIGN IN WITH EMAIL
               </span>
+
               <div className="h-px flex-1 bg-border" />
             </div>
 
@@ -296,7 +311,9 @@ export default function SigninPage() {
                   {formData.password.length > 0 && (
                     <button
                       type="button"
-                      onClick={() => setShowPassword((previous) => !previous)}
+                      onClick={() =>
+                        setShowPassword((previous) => !previous)
+                      }
                       aria-label={
                         showPassword ? "Hide password" : "Show password"
                       }
