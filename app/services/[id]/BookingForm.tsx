@@ -1,12 +1,17 @@
+
 "use client";
 
 import { useState, type FormEvent } from "react";
 
 type BookingFormProps = {
+  serviceId: string;
   serviceName: string;
   price: number;
   duration: string;
 };
+
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 const timeSlots = [
   "10:00 AM",
@@ -21,6 +26,7 @@ const timeSlots = [
 ];
 
 export default function BookingForm({
+  serviceId,
   serviceName,
   price,
   duration,
@@ -28,19 +34,23 @@ export default function BookingForm({
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [message, setMessage] = useState("");
-  const [success, setSuccess] = useState(false);
+
+  const [successMessage, setSuccessMessage] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const today = new Date().toLocaleDateString("en-CA");
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (
+    event: FormEvent<HTMLFormElement>
+  ) => {
     event.preventDefault();
 
-    setSuccess(false);
     setError("");
+    setSuccessMessage("");
 
     if (!date || !time) {
-      setError("Please select your appointment date and time.");
+      setError("Please select your preferred date and time.");
       return;
     }
 
@@ -49,48 +59,105 @@ export default function BookingForm({
       return;
     }
 
-    // Temporary frontend demonstration.
-    // Actual appointment creation will be connected to the backend later.
-    setSuccess(true);
+    try {
+      setLoading(true);
+
+      const response = await fetch(
+        `${API_URL}/api/protected/appointments`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            serviceId,
+            date,
+            time,
+            message,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Unable to submit your appointment request."
+        );
+      }
+
+      setSuccessMessage(
+        data.message ||
+          "Your appointment request has been submitted successfully!"
+      );
+
+      setDate("");
+      setTime("");
+      setMessage("");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="mt-8 rounded-2xl border border-border bg-white p-6 sm:p-8">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent-brown">
+    <div className="rounded-2xl border border-border bg-white p-6 shadow-sm sm:p-8">
+      <div className="mb-7">
+        <p className="text-xs font-semibold uppercase tracking-[0.25em] text-accent-brown">
           Appointment Booking
         </p>
 
-        <h2 className="mt-3 font-heading text-2xl text-heading">
-          Reserve Your Visit
+        <h2 className="mt-3 font-heading text-2xl text-heading sm:text-3xl">
+          Book Your Appointment
         </h2>
 
-        <p className="mt-2 text-sm leading-7 text-foreground">
-          Select your preferred date and time to request an appointment
-          at Blush & Bloom.
+        <p className="mt-3 text-sm leading-7 text-foreground">
+          Choose your preferred date and time to request an
+          appointment with us.
         </p>
       </div>
 
-      {/* Booking Summary */}
-      <div className="mt-6 flex items-center justify-between gap-4 border-y border-border py-4">
-        <div>
-          <p className="text-sm font-medium text-heading">{serviceName}</p>
-          <p className="mt-1 text-xs text-foreground">{duration}</p>
+      {/* Selected Service */}
+      <div className="mb-7 rounded-xl bg-background-soft p-5">
+        <p className="text-xs font-semibold uppercase tracking-wider text-accent-brown">
+          Selected Service
+        </p>
+
+        <h3 className="mt-2 font-heading text-xl text-heading">
+          {serviceName}
+        </h3>
+
+        <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm text-foreground">
+          <p>
+            Price:{" "}
+            <span className="font-semibold text-heading">
+              ৳{price.toLocaleString("en-BD")}
+            </span>
+          </p>
+
+          <p>
+            Duration:{" "}
+            <span className="font-semibold text-heading">
+              {duration}
+            </span>
+          </p>
         </div>
-
-        <p className="font-heading text-xl text-heading">
-          ৳{price.toLocaleString("en-BD")}
-        </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="mt-6 space-y-5">
-        {/* Appointment Date */}
+      <form onSubmit={handleSubmit} className="space-y-7">
+        {/* Date */}
         <div>
           <label
             htmlFor="appointment-date"
-            className="mb-2 block text-sm font-medium text-heading"
+            className="mb-3 block text-sm font-semibold text-heading"
           >
-            Appointment Date
+            Preferred Date
           </label>
 
           <input
@@ -98,19 +165,16 @@ export default function BookingForm({
             type="date"
             min={today}
             value={date}
-            onChange={(event) => {
-              setDate(event.target.value);
-              setSuccess(false);
-            }}
+            onChange={(event) => setDate(event.target.value)}
             required
-            className="w-full rounded-lg border border-border bg-background-soft px-4 py-3 text-sm text-heading outline-none transition focus:border-primary"
+            className="w-full rounded-xl border border-border bg-white px-4 py-3 text-sm text-heading outline-none transition focus:border-accent-brown"
           />
         </div>
 
-        {/* Appointment Time */}
+        {/* Time Slots */}
         <div>
-          <label className="mb-3 block text-sm font-medium text-heading">
-            Choose Your Preferred Time
+          <label className="mb-3 block text-sm font-semibold text-heading">
+            Preferred Time
           </label>
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -118,14 +182,11 @@ export default function BookingForm({
               <button
                 key={slot}
                 type="button"
-                onClick={() => {
-                  setTime(slot);
-                  setSuccess(false);
-                }}
-                className={`rounded-lg border px-3 py-3 text-sm transition ${
+                onClick={() => setTime(slot)}
+                className={`rounded-xl border px-3 py-3 text-sm font-medium transition ${
                   time === slot
-                    ? "border-primary bg-background-blush font-semibold text-accent-brown"
-                    : "border-border bg-white text-foreground hover:border-primary hover:bg-background-soft"
+                    ? "border-primary bg-primary text-white"
+                    : "border-border bg-white text-heading hover:border-primary hover:bg-background-blush"
                 }`}
               >
                 {slot}
@@ -138,10 +199,10 @@ export default function BookingForm({
         <div>
           <label
             htmlFor="booking-message"
-            className="mb-2 block text-sm font-medium text-heading"
+            className="mb-3 block text-sm font-semibold text-heading"
           >
-            Additional Message
-            <span className="ml-2 text-xs font-normal text-foreground">
+            Additional Message{" "}
+            <span className="font-normal text-foreground">
               (Optional)
             </span>
           </label>
@@ -149,49 +210,57 @@ export default function BookingForm({
           <textarea
             id="booking-message"
             rows={4}
+            maxLength={500}
             value={message}
             onChange={(event) => setMessage(event.target.value)}
-            maxLength={500}
             placeholder="Tell us if you have any special requests..."
-            className="w-full resize-none rounded-lg border border-border bg-background-soft px-4 py-3 text-sm text-heading outline-none transition placeholder:text-foreground/60 focus:border-primary"
+            className="w-full resize-none rounded-xl border border-border bg-white px-4 py-3 text-sm text-heading outline-none transition placeholder:text-foreground/60 focus:border-accent-brown"
           />
 
-          <p className="mt-1 text-right text-xs text-foreground">
-            {message.length}/500
+          <p className="mt-2 text-right text-xs text-foreground">
+            {message.length}/500 characters
           </p>
         </div>
 
         {/* Error */}
         {error && (
-          <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
+          <div
+            role="alert"
+            className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+          >
             {error}
-          </p>
+          </div>
         )}
 
         {/* Success */}
-        {success && (
-          <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-            <p className="font-medium text-green-800">
-              Booking details submitted successfully!
-            </p>
-            <p className="mt-1 text-sm text-green-700">
-              This is a frontend demonstration. Your appointment has not
-              yet been saved. Sign-in and backend booking integration
-              will be added next.
+        {successMessage && (
+          <div
+            role="status"
+            className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800"
+          >
+            <p className="font-semibold">{successMessage}</p>
+            <p className="mt-2 text-xs leading-6">
+              Your appointment is currently Pending and Unpaid.
+              You will be able to proceed with payment after the
+              admin confirms your appointment.
             </p>
           </div>
         )}
 
+        {/* Submit */}
         <button
           type="submit"
-          className="w-full rounded-full bg-primary px-7 py-4 text-sm font-semibold text-white transition duration-300 hover:bg-primary-hover"
+          disabled={loading}
+          className="w-full rounded-full bg-primary px-7 py-4 text-sm font-semibold text-white transition duration-300 hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Submit Appointment Request
+          {loading
+            ? "Submitting Request..."
+            : "Submit Appointment Request"}
         </button>
 
         <p className="text-center text-xs leading-6 text-foreground">
-          Appointment confirmation and payment will be handled after
-          your booking request is processed.
+          Your appointment will remain pending until it is
+          reviewed and confirmed by our salon team.
         </p>
       </form>
     </div>

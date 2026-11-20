@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "react-hot-toast";
 
@@ -45,9 +45,29 @@ function PasswordEyeIcon({ visible }: { visible: boolean }) {
   );
 }
 
+// Get the page the user should visit after signing in.
+function getRedirectPath() {
+  if (typeof window === "undefined") {
+    return "/";
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const redirect = params.get("redirect");
+
+  // Allow only internal application paths.
+  if (
+    redirect &&
+    redirect.startsWith("/") &&
+    !redirect.startsWith("//")
+  ) {
+    return redirect;
+  }
+
+  return "/";
+}
+
 export default function SigninPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -59,16 +79,6 @@ export default function SigninPage() {
   });
 
   const [error, setError] = useState("");
-
-  // Determine where the user should go after signing in.
-  const redirectParam = searchParams.get("redirect");
-
-  const redirectTo =
-    redirectParam &&
-    redirectParam.startsWith("/") &&
-    !redirectParam.startsWith("//")
-      ? redirectParam
-      : "/";
 
   // Email and password sign in
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -88,6 +98,8 @@ export default function SigninPage() {
     setIsSubmitting(true);
 
     try {
+      const redirectTo = getRedirectPath();
+
       const result = await authClient.signIn.email({
         email: formData.email.trim(),
         password: formData.password,
@@ -125,6 +137,8 @@ export default function SigninPage() {
     setIsGoogleLoading(true);
 
     try {
+      const redirectTo = getRedirectPath();
+
       const result = await authClient.signIn.social({
         provider: "google",
         callbackURL: redirectTo,
@@ -225,15 +239,18 @@ export default function SigninPage() {
                   d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5Z"
                   transform="translate(0 5)"
                 />
+
                 <path
                   fill="#4285F4"
                   d="M46.98 24.55c0-1.57-.15-3.09-.42-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.75 7.18l7.72 5.99c4.51-4.17 7.07-10.3 7.07-17.64Z"
                 />
+
                 <path
                   fill="#FBBC05"
                   d="M10.53 28.59a14.4 14.4 0 0 1 0-9.18l-7.98-6.19a23.9 23.9 0 0 0 0 21.56l7.98-6.19Z"
                   transform="translate(0 5)"
                 />
+
                 <path
                   fill="#34A853"
                   d="M24 48c6.47 0 11.91-2.13 15.88-5.81l-7.72-5.99c-2.14 1.45-4.88 2.3-8.16 2.3-6.26 0-11.57-4.22-13.46-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48Z"

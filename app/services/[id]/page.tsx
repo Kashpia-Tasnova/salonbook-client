@@ -199,7 +199,6 @@ export default function ServiceDetailsPage() {
       {/* Service Details */}
       <section className="px-6 py-10 sm:px-10 sm:py-14 lg:px-12 lg:py-16">
         <div className="mx-auto grid max-w-7xl grid-cols-1 items-start gap-10 lg:grid-cols-2 lg:gap-16">
-
           {/* Service Image */}
           <div className="overflow-hidden rounded-2xl bg-background-beige">
             {service.image ? (
@@ -318,6 +317,7 @@ export default function ServiceDetailsPage() {
                   {showBooking && (
                     <div id="booking-form">
                       <BookingForm
+                        serviceId={service._id}
                         serviceName={service.name}
                         price={service.price}
                         duration={`${service.duration} minutes`}
