@@ -30,7 +30,9 @@ export default function Navbar() {
   )?.role;
 
   const dashboardLink =
-    userRole === "admin" ? "/dashboard/admin" : "/dashboard/customer";
+    userRole === "admin"
+      ? "/dashboard/admin"
+      : "/dashboard/customer";
 
   // Logout
   const handleLogout = async () => {
@@ -81,7 +83,7 @@ export default function Navbar() {
         onClick={() => setProfileOpen((previous) => !previous)}
         aria-expanded={profileOpen}
         aria-label="Open profile menu"
-        className="flex items-center gap-2 rounded-full transition hover:bg-background-soft"
+        className="flex items-center gap-2 rounded-full border border-border bg-[#F5ECE8] px-3 py-2 shadow-sm transition-all duration-200 hover:bg-[#E4DBD8]"
       >
         <UserAvatar />
 
@@ -297,7 +299,7 @@ export default function Navbar() {
               ) : user ? (
                 <div className="flex flex-col gap-4">
                   {/* Mobile User Information */}
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 rounded-2xl border border-border bg-[#F5ECE8] p-3 shadow-sm">
                     <UserAvatar size="h-11 w-11" />
 
                     <div className="min-w-0">
