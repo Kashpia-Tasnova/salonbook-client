@@ -1,8 +1,12 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { authClient } from "@/lib/auth-client";
+import { toast } from "react-hot-toast";
+
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function CustomerProfilePage() {
   const { data: session, isPending } = authClient.useSession();
@@ -12,8 +16,9 @@ export default function CustomerProfilePage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [image, setImage] = useState("");
-
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const currentName = user?.name || "";
   const currentEmail = user?.email || "";
@@ -22,9 +27,22 @@ export default function CustomerProfilePage() {
   const displayName = name || currentName;
   const initial = displayName.charAt(0).toUpperCase() || "U";
 
+  const userPhone = (
+    user as typeof user & { phone?: string }
+  )?.phone || "";
+
+  useEffect(() => {
+    if (user) {
+      setName(user.name || "");
+      setPhone(userPhone);
+    }
+  }, [user, userPhone]);
+
   const handleEdit = () => {
     setName(currentName);
+    setPhone(userPhone);
     setImage("");
+    setSelectedFile(null);
     setIsEditing(true);
   };
 
@@ -38,29 +56,142 @@ export default function CustomerProfilePage() {
     const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
 
     if (!allowedTypes.includes(file.type)) {
-      alert("Please select a JPG, PNG, or WEBP image.");
+      toast.error("Please select a JPG, PNG, or WEBP image.");
       event.target.value = "";
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      alert("Image size must be less than 5MB.");
+      toast.error("Image size must be less than 5MB.");
       event.target.value = "";
       return;
     }
 
+    if (image.startsWith("blob:")) {
+      URL.revokeObjectURL(image);
+    }
+
+    setSelectedFile(file);
     setImage(URL.createObjectURL(file));
   };
 
-  const handleSave = () => {
-    alert(
-      "Profile update will be enabled after connecting the profile update API."
-    );
+  const handleSave = async () => {
+    if (!name.trim()) {
+      toast.error("Please enter your full name.");
+      return;
+    }
+
+    if (name.trim().length > 100) {
+      toast.error("Name cannot exceed 100 characters.");
+      return;
+    }
+
+    if (phone.length > 20) {
+      toast.error("Phone number cannot exceed 20 characters.");
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      let uploadedImageUrl: string | undefined;
+
+      // Upload the selected image to ImgBB first.
+      if (selectedFile) {
+        const formData = new FormData();
+        formData.append("image", selectedFile);
+
+        const uploadResponse = await fetch(
+          `${API_URL}/api/upload/profile-image`,
+          {
+            method: "POST",
+            body: formData,
+            credentials: "include",
+          }
+        );
+
+        const uploadResult = await uploadResponse.json();
+
+        if (!uploadResponse.ok || !uploadResult.success) {
+          throw new Error(
+            uploadResult.message || "Profile image upload failed."
+          );
+        }
+
+        uploadedImageUrl = uploadResult.imageUrl;
+      }
+
+      // Update the authenticated user's profile.
+      const updateData: {
+        name: string;
+        phone: string;
+        image?: string;
+      } = {
+        name: name.trim(),
+        phone: phone.trim(),
+      };
+
+      if (uploadedImageUrl) {
+        updateData.image = uploadedImageUrl;
+      }
+
+      const response = await fetch(
+        `${API_URL}/api/protected/profile`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify(updateData),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Profile update failed.");
+      }
+
+      // Refresh Better Auth session information.
+      await authClient.getSession();
+
+      if (image.startsWith("blob:")) {
+        URL.revokeObjectURL(image);
+      }
+
+      setImage("");
+      setSelectedFile(null);
+      setIsEditing(false);
+
+      toast.success("Your profile has been updated successfully!");
+    } catch (error) {
+      console.error("Profile update error:", error);
+
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong while updating your profile."
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    if (image.startsWith("blob:")) {
+      URL.revokeObjectURL(image);
+    }
+
+    setName(currentName);
+    setPhone(userPhone);
+    setImage("");
+    setSelectedFile(null);
+    setIsEditing(false);
   };
 
   return (
     <main>
-      {/* Heading */}
       <section className="mb-8">
         <p className="mb-2 text-sm uppercase tracking-[0.2em] text-[#B39A7D]">
           Customer Dashboard
@@ -92,7 +223,6 @@ export default function CustomerProfilePage() {
         </div>
       ) : (
         <div className="space-y-7">
-          {/* Profile Overview */}
           <section className="border border-[#E6E1DD] bg-white p-6 sm:p-8">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
               <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#F5ECE8] font-serif text-4xl text-[#967467]">
@@ -123,7 +253,6 @@ export default function CustomerProfilePage() {
             </div>
           </section>
 
-          {/* Personal Information */}
           <section className="border border-[#E6E1DD] bg-white">
             <div className="flex items-center justify-between border-b border-[#E6E1DD] px-6 py-5 sm:px-8">
               <div>
@@ -197,7 +326,7 @@ export default function CustomerProfilePage() {
                   />
                 ) : (
                   <p className="border border-[#E6E1DD] bg-[#FDFCFC] px-4 py-3 text-sm text-[#46322D]">
-                    {phone || "Not added yet"}
+                    {userPhone || "Not added yet"}
                   </p>
                 )}
               </div>
@@ -226,15 +355,17 @@ export default function CustomerProfilePage() {
                   <button
                     type="button"
                     onClick={handleSave}
-                    className="bg-[#B39A7D] px-6 py-3 text-sm font-medium text-white transition hover:bg-[#967467]"
+                    disabled={isSaving}
+                    className="bg-[#B39A7D] px-6 py-3 text-sm font-medium text-white transition hover:bg-[#967467] disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    Save Changes
+                    {isSaving ? "Saving..." : "Save Changes"}
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => setIsEditing(false)}
-                    className="border border-[#E6E1DD] px-6 py-3 text-sm text-[#7A7470] transition hover:bg-[#F5ECE8]"
+                    onClick={handleCancel}
+                    disabled={isSaving}
+                    className="border border-[#E6E1DD] px-6 py-3 text-sm text-[#7A7470] transition hover:bg-[#F5ECE8] disabled:opacity-60"
                   >
                     Cancel
                   </button>
@@ -243,7 +374,6 @@ export default function CustomerProfilePage() {
             </div>
           </section>
 
-          {/* Account Security */}
           <section className="border border-[#E6E1DD] bg-[#F5ECE8] p-6 sm:p-8">
             <h2 className="font-serif text-xl text-[#46322D]">
               Account Security
