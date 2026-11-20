@@ -18,10 +18,10 @@ const navigation = [
     icon: "✿",
   },
   {
-    label: "Add Service",
-    href: "/dashboard/admin/services/add",
-    icon: "+",
-  },
+  label: "Manage Categories",
+  href: "/dashboard/admin/categories",
+  icon: "▦",
+},
   {
     label: "Manage Appointments",
     href: "/dashboard/admin/appointments",

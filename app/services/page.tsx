@@ -1,115 +1,124 @@
+
 "use client";
 
 import Link from "next/link";
 import { Suspense, useMemo, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 
-const services = [
-  {
-    id: "hydrafacial",
-    name: "HydraFacial",
-    category: "Facial & Skincare",
-    price: 3500,
-    duration: "60 minutes",
-    description:
-      "Deeply cleanse, exfoliate, and hydrate your skin for a fresh, healthy-looking glow.",
-    image:
-      "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=900&q=90",
-  },
-  {
-    id: "led-light-facial",
-    name: "LED Light Facial",
-    category: "Facial & Skincare",
-    price: 2500,
-    duration: "45 minutes",
-    description:
-      "Enjoy a relaxing LED light therapy treatment for healthier-looking skin.",
-    image:
-      "https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?auto=format&fit=crop&w=900&q=90",
-  },
-  {
-    id: "layer-haircut",
-    name: "Layer Haircut",
-    category: "Haircut & Styling",
-    price: 1200,
-    duration: "45 minutes",
-    description:
-      "Add beautiful movement and shape to your hair with professionally blended layers.",
-    image:
-      "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=900&q=90",
-  },
-  {
-    id: "keratin-treatment",
-    name: "Keratin Treatment",
-    category: "Hair Treatment",
-    price: 5500,
-    duration: "120 minutes",
-    description:
-      "Give your hair a smoother, shinier finish while helping control unwanted frizz.",
-    image:
-      "https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&w=900&q=90",
-  },
-  {
-    id: "gel-manicure",
-    name: "Gel Manicure",
-    category: "Manicure & Pedicure",
-    price: 1500,
-    duration: "45 minutes",
-    description:
-      "Complete your look with beautifully polished nails and a glossy gel finish.",
-    image:
-      "https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=900&q=90",
-  },
-  {
-    id: "bridal-makeup",
-    name: "Bridal Makeup",
-    category: "Bridal Beauty",
-    price: 8500,
-    duration: "90 minutes",
-    description:
-      "A personalized bridal makeup experience designed for your unforgettable day.",
-    image:
-      "https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?auto=format&fit=crop&w=900&q=90",
-  },
-];
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
-// Category URL IDs and their corresponding category names
-const categoryMap: Record<string, string> = {
-  "haircut-styling": "Haircut & Styling",
-  "hair-coloring": "Hair Coloring",
-  "facial-skincare": "Facial & Skincare",
-  "manicure-pedicure": "Manicure & Pedicure",
-  "hair-treatment": "Hair Treatment",
-  makeup: "Makeup",
-  "body-spa": "Body Spa",
-  "bridal-beauty": "Bridal Beauty",
-};
-
-const categories = Object.values(categoryMap);
+interface Service {
+  _id: string;
+  name: string;
+  category: string;
+  shortDescription: string;
+  description: string;
+  image: string;
+  price: number;
+  duration: number;
+  isActive: boolean;
+}
 
 function ServicesContent() {
   const searchParams = useSearchParams();
 
+  const [services, setServices] = useState<Service[]>([]);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortOrder, setSortOrder] = useState("default");
 
-  // Read the category from the URL when the page opens
-  useEffect(() => {
-    const categoryId = searchParams.get("category");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-    if (categoryId && categoryMap[categoryId]) {
-      setSelectedCategory(categoryMap[categoryId]);
+  // Fetch active services from the backend
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const fetchServices = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const response = await fetch(
+          `${API_URL}/api/protected/services`,
+          {
+            method: "GET",
+            signal: controller.signal,
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(
+            data.message || "Failed to load salon services."
+          );
+        }
+
+        setServices(data.services || []);
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") {
+          return;
+        }
+
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Something went wrong while loading services."
+        );
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchServices();
+
+    return () => controller.abort();
+  }, []);
+
+  // Get unique categories from the fetched services
+  const categories = useMemo(() => {
+    return Array.from(
+      new Set(services.map((service) => service.category))
+    ).sort();
+  }, [services]);
+
+  // Convert category names into URL-friendly values
+  const slugify = (value: string) =>
+    value
+      .toLowerCase()
+      .trim()
+      .replace(/&/g, "and")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+
+  // Read the category from the URL
+  useEffect(() => {
+    const categoryParam = searchParams.get("category");
+
+    if (categoryParam) {
+      const matchedCategory = categories.find(
+        (category) =>
+          slugify(category) === categoryParam.toLowerCase() ||
+          category.toLowerCase() === categoryParam.toLowerCase()
+      );
+
+      setSelectedCategory(matchedCategory || "all");
     } else {
       setSelectedCategory("all");
     }
-  }, [searchParams]);
+  }, [searchParams, categories]);
 
+  // Search, filter and sort services
   const filteredServices = useMemo(() => {
     let result = services.filter((service) => {
-      const matchesSearch = service.name
-        .toLowerCase()
-        .includes(search.trim().toLowerCase());
+      const matchesSearch =
+        service.name
+          .toLowerCase()
+          .includes(search.trim().toLowerCase());
 
       const matchesCategory =
         selectedCategory === "all" ||
@@ -125,7 +134,7 @@ function ServicesContent() {
     }
 
     return result;
-  }, [search, selectedCategory, sortOrder]);
+  }, [services, search, selectedCategory, sortOrder]);
 
   const clearFilters = () => {
     setSearch("");
@@ -177,9 +186,11 @@ function ServicesContent() {
               </h2>
             </div>
 
-            <p className="text-sm text-foreground">
-              Showing {filteredServices.length} of {services.length} Services
-            </p>
+            {!loading && !error && (
+              <p className="text-sm text-foreground">
+                Showing {filteredServices.length} of {services.length} Services
+              </p>
+            )}
           </div>
 
           {/* Search and Filters */}
@@ -264,17 +275,55 @@ function ServicesContent() {
             </div>
           </div>
 
-          {/* Service Cards */}
-          {filteredServices.length > 0 ? (
+          {/* Loading State */}
+          {loading ? (
+            <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="overflow-hidden rounded-2xl border border-border bg-white"
+                >
+                  <div className="aspect-[4/3] animate-pulse bg-background-beige" />
+
+                  <div className="space-y-4 p-5 sm:p-6">
+                    <div className="h-6 w-3/4 animate-pulse rounded bg-background-beige" />
+                    <div className="h-4 w-full animate-pulse rounded bg-background-beige" />
+                    <div className="h-4 w-2/3 animate-pulse rounded bg-background-beige" />
+                    <div className="h-10 w-full animate-pulse rounded-full bg-background-beige" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : error ? (
+            /* Error State */
+            <div className="rounded-2xl border border-border bg-white px-6 py-16 text-center">
+              <h3 className="font-heading text-2xl text-heading">
+                Unable to Load Services
+              </h3>
+
+              <p className="mt-3 text-sm text-foreground">
+                {error}
+              </p>
+
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="mt-6 rounded-full bg-primary px-7 py-3 text-sm font-semibold text-white transition hover:bg-primary-hover"
+              >
+                Try Again
+              </button>
+            </div>
+          ) : filteredServices.length > 0 ? (
+            /* Service Cards */
             <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
               {filteredServices.map((service) => (
                 <article
-                  key={service.id}
+                  key={service._id}
                   className="group overflow-hidden rounded-2xl border border-border bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
                 >
                   {/* Service Image */}
                   <Link
-                    href={`/services/${service.id}`}
+                    href={`/services/${service._id}`}
                     className="relative block aspect-[4/3] overflow-hidden"
                   >
                     <img
@@ -296,7 +345,7 @@ function ServicesContent() {
                     </h3>
 
                     <p className="mt-3 min-h-[72px] text-sm leading-6 text-foreground">
-                      {service.description}
+                      {service.shortDescription || service.description}
                     </p>
 
                     {/* Price and Duration */}
@@ -317,14 +366,14 @@ function ServicesContent() {
                         </p>
 
                         <p className="mt-1 text-sm font-medium text-heading">
-                          {service.duration}
+                          {service.duration} minutes
                         </p>
                       </div>
                     </div>
 
                     {/* View Details */}
                     <Link
-                      href={`/services/${service.id}`}
+                      href={`/services/${service._id}`}
                       className="mt-5 flex w-full items-center justify-center gap-2 rounded-full border border-primary px-5 py-3 text-sm font-semibold text-heading transition-all duration-300 hover:bg-primary hover:text-white"
                     >
                       View Details
