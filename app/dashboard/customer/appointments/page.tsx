@@ -121,7 +121,7 @@ export default function MyAppointmentsPage() {
     );
   }, [appointments, activeFilter]);
 
-  // Format the appointment date without changing its calendar day.
+  // Format appointment date without changing its calendar day.
   const formatDate = (dateString: string) => {
     if (!dateString) return "Date unavailable";
 
@@ -194,9 +194,6 @@ export default function MyAppointmentsPage() {
         {
           method: "PATCH",
           credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
         }
       );
 
@@ -463,32 +460,43 @@ export default function MyAppointmentsPage() {
                         )}
                       </p>
 
-                      {appointment.status.toLowerCase() ===
-                        "pending" && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleCancelAppointment(appointment._id)
-                          }
-                          disabled={
-                            cancellingId === appointment._id
-                          }
-                          className="border border-red-200 px-5 py-2.5 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      <div className="flex flex-wrap items-center gap-2">
+                        {/* View Details */}
+                        <Link
+                          href={`/dashboard/customer/appointments/${appointment._id}`}
+                          className="border border-[#B39A7D] px-5 py-2.5 text-xs font-semibold text-[#967467] transition hover:bg-[#F5ECE8]"
                         >
-                          {cancellingId === appointment._id
-                            ? "Cancelling..."
-                            : "Cancel Appointment"}
-                        </button>
-                      )}
+                          View Details 
+                        </Link>
 
-                      {appointment.status.toLowerCase() ===
-                        "confirmed" &&
-                        appointment.paymentStatus.toLowerCase() ===
-                          "unpaid" && (
-                          <span className="text-xs font-medium text-[#967467]">
-                            Payment will be available soon.
-                          </span>
+                        {/* Cancel Appointment */}
+                        {appointment.status.toLowerCase() ===
+                          "pending" && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleCancelAppointment(appointment._id)
+                            }
+                            disabled={
+                              cancellingId === appointment._id
+                            }
+                            className="border border-red-200 px-5 py-2.5 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {cancellingId === appointment._id
+                              ? "Cancelling..."
+                              : "Cancel Appointment"}
+                          </button>
                         )}
+
+                        {appointment.status.toLowerCase() ===
+                          "confirmed" &&
+                          appointment.paymentStatus.toLowerCase() ===
+                            "unpaid" && (
+                            <span className="text-xs font-medium text-[#967467]">
+                              Payment will be available soon.
+                            </span>
+                          )}
+                      </div>
                     </div>
 
                     {appointment.message && (
