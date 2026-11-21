@@ -5,9 +5,6 @@ import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
 interface Category {
   _id: string;
   name: string;
@@ -49,13 +46,12 @@ export default function AddServicePage() {
         setIsLoadingCategories(true);
         setCategoryError("");
 
-        const response = await fetch(
-          `${API_URL}/api/protected/categories`,
-          {
-            cache: "no-store",
-            signal: controller.signal,
-          }
-        );
+        const response = await fetch("/api/protected/categories", {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+          signal: controller.signal,
+        });
 
         const data = await response.json();
 
@@ -148,14 +144,11 @@ export default function AddServicePage() {
       const uploadData = new FormData();
       uploadData.append("image", file);
 
-      const response = await fetch(
-        `${API_URL}/api/upload/service-image`,
-        {
-          method: "POST",
-          credentials: "include",
-          body: uploadData,
-        }
-      );
+      const response = await fetch("/api/upload/service-image", {
+        method: "POST",
+        credentials: "include",
+        body: uploadData,
+      });
 
       const data = await response.json();
 
@@ -264,26 +257,23 @@ export default function AddServicePage() {
     try {
       setIsSubmitting(true);
 
-      const response = await fetch(
-        `${API_URL}/api/protected/admin/services`,
-        {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name: formData.name.trim(),
-            category: formData.category,
-            shortDescription: formData.shortDescription.trim(),
-            description: formData.description.trim(),
-            image: formData.image,
-            price: Number(formData.price),
-            duration: Number(formData.duration),
-            whatToExpect: expectations,
-          }),
-        }
-      );
+      const response = await fetch("/api/protected/admin/services", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: formData.name.trim(),
+          category: formData.category,
+          shortDescription: formData.shortDescription.trim(),
+          description: formData.description.trim(),
+          image: formData.image,
+          price: Number(formData.price),
+          duration: Number(formData.duration),
+          whatToExpect: expectations,
+        }),
+      });
 
       const data = await response.json();
 

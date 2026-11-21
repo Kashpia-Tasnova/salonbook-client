@@ -37,9 +37,6 @@ interface DashboardResponse {
   message?: string;
 }
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
 const statisticCards = [
   {
     key: "totalServices",
@@ -145,7 +142,7 @@ export default function AdminDashboardPage() {
         setError("");
 
         const response = await fetch(
-          `${API_URL}/api/protected/admin/stats`,
+          "/api/protected/admin/stats",
           {
             method: "GET",
             credentials: "include",

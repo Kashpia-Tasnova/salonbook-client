@@ -30,9 +30,6 @@ interface TransactionsResponse {
   message?: string;
 }
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
 function formatDate(value: string | null) {
   if (!value) return "Not available";
 
@@ -132,17 +129,14 @@ export default function AdminTransactionsPage() {
       setIsLoading(true);
       setError("");
 
-      const response = await fetch(
-        `${API_URL}/api/admin/transactions`,
-        {
-          method: "GET",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          cache: "no-store",
-        }
-      );
+      const response = await fetch("/api/admin/transactions", {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        cache: "no-store",
+      });
 
       const data: TransactionsResponse = await response.json();
 

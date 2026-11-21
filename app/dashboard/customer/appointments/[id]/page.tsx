@@ -16,9 +16,6 @@ import {
   XCircle,
 } from "lucide-react";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
 interface Appointment {
   _id: string;
   serviceId: string;
@@ -43,6 +40,8 @@ const statusStyles: Record<string, string> = {
 };
 
 function formatDate(date: string) {
+  if (!date) return "Date unavailable";
+
   const datePart = date.split("T")[0];
   const [year, month, day] = datePart.split("-").map(Number);
 
@@ -72,7 +71,7 @@ export default function AppointmentDetailsPage() {
         setError("");
 
         const response = await fetch(
-          `${API_URL}/api/protected/customer/appointments/${appointmentId}`,
+          `/api/protected/customer/appointments/${appointmentId}`,
           {
             method: "GET",
             credentials: "include",
@@ -136,7 +135,7 @@ export default function AppointmentDetailsPage() {
       setCancelling(true);
 
       const response = await fetch(
-        `${API_URL}/api/protected/customer/appointments/${appointment._id}/cancel`,
+        `/api/protected/customer/appointments/${appointment._id}/cancel`,
         {
           method: "PATCH",
           credentials: "include",

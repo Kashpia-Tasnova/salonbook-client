@@ -5,9 +5,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
 type Appointment = {
   _id: string;
   serviceName: string;
@@ -95,7 +92,7 @@ export default function CustomerDashboard() {
         setError("");
 
         const response = await fetch(
-          `${API_URL}/api/protected/customer/appointments`,
+          "/api/protected/customer/appointments",
           {
             method: "GET",
             credentials: "include",

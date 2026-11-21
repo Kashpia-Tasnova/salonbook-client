@@ -5,9 +5,6 @@ import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "react-hot-toast";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
 export default function CustomerProfilePage() {
   const { data: session, isPending } = authClient.useSession();
 
@@ -118,13 +115,13 @@ export default function CustomerProfilePage() {
     try {
       let uploadedImageUrl: string | undefined;
 
-      // Upload the selected image to ImgBB first.
+      // Upload the selected image through the same-origin proxy.
       if (selectedFile) {
         const formData = new FormData();
         formData.append("image", selectedFile);
 
         const uploadResponse = await fetch(
-          `${API_URL}/api/upload/profile-image`,
+          "/api/upload/profile-image",
           {
             method: "POST",
             body: formData,
@@ -160,17 +157,14 @@ export default function CustomerProfilePage() {
         updateData.image = "";
       }
 
-      const response = await fetch(
-        `${API_URL}/api/protected/profile`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify(updateData),
-        }
-      );
+      const response = await fetch("/api/protected/profile", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(updateData),
+      });
 
       const result = await response.json();
 

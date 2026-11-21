@@ -4,9 +4,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
 interface SalonService {
   _id: string;
   name: string;
@@ -29,13 +26,12 @@ export default function FeaturedSalonServices() {
 
     const fetchServices = async () => {
       try {
-        const response = await fetch(
-          `${API_URL}/api/protected/services`,
-          {
-            cache: "no-store",
-            signal: controller.signal,
-          }
-        );
+        const response = await fetch("/api/protected/services", {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+          signal: controller.signal,
+        });
 
         const data = await response.json();
 

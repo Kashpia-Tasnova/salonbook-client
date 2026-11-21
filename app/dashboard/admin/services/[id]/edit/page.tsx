@@ -5,9 +5,6 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
 interface SalonService {
   _id: string;
   name: string;
@@ -66,12 +63,15 @@ export default function EditServicePage() {
         setCategoryError("");
 
         const [serviceResponse, categoryResponse] = await Promise.all([
-          fetch(`${API_URL}/api/protected/admin/services`, {
+          fetch("/api/protected/admin/services", {
+            method: "GET",
             credentials: "include",
             cache: "no-store",
             signal: controller.signal,
           }),
-          fetch(`${API_URL}/api/protected/categories`, {
+          fetch("/api/protected/categories", {
+            method: "GET",
+            credentials: "include",
             cache: "no-store",
             signal: controller.signal,
           }),
@@ -210,14 +210,11 @@ export default function EditServicePage() {
       const uploadData = new FormData();
       uploadData.append("image", file);
 
-      const response = await fetch(
-        `${API_URL}/api/upload/service-image`,
-        {
-          method: "POST",
-          credentials: "include",
-          body: uploadData,
-        }
-      );
+      const response = await fetch("/api/upload/service-image", {
+        method: "POST",
+        credentials: "include",
+        body: uploadData,
+      });
 
       const data = await response.json();
 
@@ -330,7 +327,7 @@ export default function EditServicePage() {
       setIsSaving(true);
 
       const response = await fetch(
-        `${API_URL}/api/protected/admin/services/${id}`,
+        `/api/protected/admin/services/${id}`,
         {
           method: "PATCH",
           credentials: "include",

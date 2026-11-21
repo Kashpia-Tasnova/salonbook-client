@@ -5,9 +5,6 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
 interface SalonService {
   _id: string;
   name: string;
@@ -31,15 +28,16 @@ export default function ServiceDetailsPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    const controller = new AbortController();
+
     const fetchService = async () => {
       try {
-        const response = await fetch(
-          `${API_URL}/api/protected/admin/services`,
-          {
-            credentials: "include",
-            cache: "no-store",
-          }
-        );
+        const response = await fetch("/api/protected/admin/services", {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+          signal: controller.signal,
+        });
 
         const data = await response.json();
 
@@ -59,19 +57,29 @@ export default function ServiceDetailsPage() {
 
         setService(foundService);
       } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") {
+          return;
+        }
+
         setError(
           err instanceof Error
             ? err.message
             : "Something went wrong."
         );
       } finally {
-        setIsLoading(false);
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
       }
     };
 
     if (id) {
       fetchService();
     }
+
+    return () => {
+      controller.abort();
+    };
   }, [id]);
 
   const categoryName =

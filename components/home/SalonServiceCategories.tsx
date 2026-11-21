@@ -4,9 +4,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
 interface Category {
   _id: string;
   name: string;
@@ -47,18 +44,19 @@ export default function SalonServiceCategories() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    const controller = new AbortController();
+
     const fetchCategories = async () => {
       try {
         setIsLoading(true);
         setError("");
 
-        const response = await fetch(
-          `${API_URL}/api/protected/categories`,
-          {
-            method: "GET",
-            cache: "no-store",
-          }
-        );
+        const response = await fetch("/api/protected/categories", {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+          signal: controller.signal,
+        });
 
         const data: CategoriesResponse = await response.json();
 
@@ -83,17 +81,25 @@ export default function SalonServiceCategories() {
 
         setCategories(homepageCategories);
       } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") {
+          return;
+        }
+
         setError(
           err instanceof Error
             ? err.message
             : "Something went wrong while loading categories."
         );
       } finally {
-        setIsLoading(false);
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchCategories();
+
+    return () => controller.abort();
   }, []);
 
   return (
@@ -144,6 +150,7 @@ export default function SalonServiceCategories() {
             <p className="text-sm text-red-700">{error}</p>
 
             <button
+              type="button"
               onClick={() => window.location.reload()}
               className="mt-4 bg-[#46322D] px-5 py-2.5 text-sm text-white transition hover:bg-[#967467]"
             >

@@ -21,9 +21,6 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
 type AppointmentStatus =
   | "pending"
   | "confirmed"
@@ -120,7 +117,7 @@ export default function AdminAppointmentsPage() {
       setError("");
 
       const response = await fetch(
-        `${API_URL}/api/protected/admin/appointments`,
+        "/api/protected/admin/appointments",
         {
           method: "GET",
           credentials: "include",
@@ -230,7 +227,7 @@ export default function AdminAppointmentsPage() {
       setUpdatingId(appointment._id);
 
       const response = await fetch(
-        `${API_URL}/api/protected/admin/appointments/${appointment._id}/status`,
+        `/api/protected/admin/appointments/${appointment._id}/status`,
         {
           method: "PATCH",
           credentials: "include",

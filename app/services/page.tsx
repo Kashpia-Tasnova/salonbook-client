@@ -5,9 +5,6 @@ import Link from "next/link";
 import { Suspense, useMemo, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
 interface Service {
   _id: string;
   name: string;
@@ -63,13 +60,15 @@ function ServicesContent() {
 
         const [servicesResponse, categoriesResponse] =
           await Promise.all([
-            fetch(`${API_URL}/api/protected/services`, {
+            fetch("/api/protected/services", {
               method: "GET",
+              credentials: "include",
               signal: controller.signal,
               cache: "no-store",
             }),
-            fetch(`${API_URL}/api/protected/categories`, {
+            fetch("/api/protected/categories", {
               method: "GET",
+              credentials: "include",
               signal: controller.signal,
               cache: "no-store",
             }),

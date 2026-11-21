@@ -4,9 +4,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
 interface Category {
   _id: string;
   name: string;
@@ -52,14 +49,12 @@ export default function CategoriesPage() {
 
     const loadCategories = async () => {
       try {
-        const response = await fetch(
-          `${API_URL}/api/protected/categories`,
-          {
-            method: "GET",
-            cache: "no-store",
-            signal: controller.signal,
-          }
-        );
+        const response = await fetch("/api/protected/categories", {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+          signal: controller.signal,
+        });
 
         const data: CategoriesResponse = await response.json();
 

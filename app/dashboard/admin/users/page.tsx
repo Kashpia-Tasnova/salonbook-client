@@ -19,9 +19,6 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
 type UserRole = "admin" | "customer";
 
 type SalonUser = {
@@ -65,15 +62,12 @@ export default function AdminUsersPage() {
     try {
       setError("");
 
-      const response = await fetch(
-        `${API_URL}/api/protected/admin/users`,
-        {
-          method: "GET",
-          credentials: "include",
-          cache: "no-store",
-          signal,
-        }
-      );
+      const response = await fetch("/api/protected/admin/users", {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+        signal,
+      });
 
       const data = await response.json();
 
@@ -172,9 +166,7 @@ export default function AdminUsersPage() {
 
     try {
       const response = await fetch(
-        `${API_URL}/api/protected/admin/users/${encodeURIComponent(
-          user._id
-        )}/status`,
+        `/api/protected/admin/users/${encodeURIComponent(user._id)}/status`,
         {
           method: "PATCH",
           credentials: "include",

@@ -180,22 +180,17 @@ export default function SignupPage() {
     try {
       let profileImageUrl: string | undefined;
 
-      // Upload profile image to ImgBB if the user selected one
+      // Upload profile image through the same-origin API proxy
       if (profileImage) {
         const uploadFormData = new FormData();
 
         uploadFormData.append("image", profileImage);
 
-        const apiUrl =
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
-        const uploadResponse = await fetch(
-          `${apiUrl}/api/upload/profile-image`,
-          {
-            method: "POST",
-            body: uploadFormData,
-          }
-        );
+        const uploadResponse = await fetch("/api/upload/profile-image", {
+          method: "POST",
+          credentials: "include",
+          body: uploadFormData,
+        });
 
         const uploadResult = await uploadResponse.json();
 

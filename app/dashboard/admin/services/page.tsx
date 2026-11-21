@@ -4,9 +4,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
 interface SalonService {
   _id: string;
   name: string;
@@ -47,7 +44,7 @@ export default function ManageServicesPage() {
         setError("");
 
         const response = await fetch(
-          `${API_URL}/api/protected/admin/services`,
+          "/api/protected/admin/services",
           {
             method: "GET",
             credentials: "include",
@@ -98,7 +95,7 @@ export default function ManageServicesPage() {
       setMessage("");
 
       const response = await fetch(
-        `${API_URL}/api/protected/admin/services/${service._id}`,
+        `/api/protected/admin/services/${service._id}`,
         {
           method: "PATCH",
           credentials: "include",
@@ -147,7 +144,7 @@ export default function ManageServicesPage() {
       setMessage("");
 
       const response = await fetch(
-        `${API_URL}/api/protected/admin/services/${service._id}`,
+        `/api/protected/admin/services/${service._id}`,
         {
           method: "DELETE",
           credentials: "include",

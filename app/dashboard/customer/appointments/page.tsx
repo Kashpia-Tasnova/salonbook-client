@@ -4,9 +4,6 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
 type AppointmentStatus =
   | "All"
   | "Pending"
@@ -60,7 +57,7 @@ export default function MyAppointmentsPage() {
         setError("");
 
         const response = await fetch(
-          `${API_URL}/api/protected/customer/appointments`,
+          "/api/protected/customer/appointments",
           {
             method: "GET",
             credentials: "include",
@@ -186,7 +183,7 @@ export default function MyAppointmentsPage() {
       setPaymentError("");
 
       const response = await fetch(
-        `${API_URL}/api/payment/create-checkout-session`,
+        "/api/payment/create-checkout-session",
         {
           method: "POST",
           headers: {
@@ -231,7 +228,7 @@ export default function MyAppointmentsPage() {
       setCancelError("");
 
       const response = await fetch(
-        `${API_URL}/api/protected/customer/appointments/${appointmentId}/cancel`,
+        `/api/protected/customer/appointments/${appointmentId}/cancel`,
         {
           method: "PATCH",
           credentials: "include",

@@ -7,9 +7,6 @@ import { useEffect, useState } from "react";
 import { useSession } from "@/lib/auth-client";
 import BookingForm from "./BookingForm";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
 interface SalonService {
   _id: string;
   name: string;
@@ -59,13 +56,12 @@ export default function ServiceDetailsPage() {
         setIsLoading(true);
         setError("");
 
-        const response = await fetch(
-          `${API_URL}/api/protected/services`,
-          {
-            cache: "no-store",
-            signal: controller.signal,
-          }
-        );
+        const response = await fetch("/api/protected/services", {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+          signal: controller.signal,
+        });
 
         const data = await response.json();
 

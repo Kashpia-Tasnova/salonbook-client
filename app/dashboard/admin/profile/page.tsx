@@ -5,9 +5,6 @@ import { useEffect, useState, type ChangeEvent } from "react";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "react-hot-toast";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
 export default function AdminProfilePage() {
   const { data: session, isPending } = authClient.useSession();
   const user = session?.user;
@@ -97,7 +94,7 @@ export default function AdminProfilePage() {
         formData.append("image", selectedFile);
 
         const uploadResponse = await fetch(
-          `${API_URL}/api/upload/profile-image`,
+          "/api/upload/profile-image",
           {
             method: "POST",
             credentials: "include",
@@ -116,7 +113,7 @@ export default function AdminProfilePage() {
         imageUrl = uploadData.imageUrl;
       }
 
-      const response = await fetch(`${API_URL}/api/protected/profile`, {
+      const response = await fetch("/api/protected/profile", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -162,7 +159,7 @@ export default function AdminProfilePage() {
     setIsRemoving(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/protected/profile`, {
+      const response = await fetch("/api/protected/profile", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",

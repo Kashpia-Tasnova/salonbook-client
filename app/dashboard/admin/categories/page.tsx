@@ -9,9 +9,6 @@ import {
   type FormEvent,
 } from "react";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
 interface Category {
   _id: string;
   name: string;
@@ -58,7 +55,7 @@ export default function ManageCategoriesPage() {
     const loadCategories = async () => {
       try {
         const response = await fetch(
-          `${API_URL}/api/protected/admin/categories`,
+          "/api/protected/admin/categories",
           {
             method: "GET",
             credentials: "include",
@@ -114,7 +111,15 @@ export default function ManageCategoriesPage() {
     setDescription("");
     setImage("");
     setSelectedFile(null);
-    setImagePreview("");
+
+    setImagePreview((previousPreview) => {
+      if (previousPreview.startsWith("blob:")) {
+        URL.revokeObjectURL(previousPreview);
+      }
+
+      return "";
+    });
+
     setEditingCategory(null);
 
     if (fileInputRef.current) {
@@ -182,7 +187,7 @@ export default function ManageCategoriesPage() {
     });
   };
 
-  // Upload image to ImgBB.
+  // Upload image to ImgBB through the same-origin proxy.
   const uploadCategoryImage = async (): Promise<string> => {
     if (!selectedFile) return image;
 
@@ -190,7 +195,7 @@ export default function ManageCategoriesPage() {
     formData.append("image", selectedFile);
 
     const response = await fetch(
-      `${API_URL}/api/upload/category-image`,
+      "/api/upload/category-image",
       {
         method: "POST",
         credentials: "include",
@@ -233,8 +238,8 @@ export default function ManageCategoriesPage() {
       const imageUrl = await uploadCategoryImage();
 
       const endpoint = editingCategory
-        ? `${API_URL}/api/protected/admin/categories/${editingCategory._id}`
-        : `${API_URL}/api/protected/admin/categories`;
+        ? `/api/protected/admin/categories/${editingCategory._id}`
+        : "/api/protected/admin/categories";
 
       const response = await fetch(endpoint, {
         method: editingCategory ? "PATCH" : "POST",
@@ -286,7 +291,7 @@ export default function ManageCategoriesPage() {
       setMessage("");
 
       const response = await fetch(
-        `${API_URL}/api/protected/admin/categories/${category._id}`,
+        `/api/protected/admin/categories/${category._id}`,
         {
           method: "PATCH",
           credentials: "include",
@@ -335,7 +340,7 @@ export default function ManageCategoriesPage() {
       setMessage("");
 
       const response = await fetch(
-        `${API_URL}/api/protected/admin/categories/${category._id}`,
+        `/api/protected/admin/categories/${category._id}`,
         {
           method: "DELETE",
           credentials: "include",

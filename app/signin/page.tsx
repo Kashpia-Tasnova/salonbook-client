@@ -58,7 +58,8 @@ function getRedirectPath() {
   if (
     redirect &&
     redirect.startsWith("/") &&
-    !redirect.startsWith("//")
+    !redirect.startsWith("//") &&
+    !redirect.includes("\\")
   ) {
     return redirect;
   }
@@ -72,6 +73,7 @@ export default function SigninPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [signupHref, setSignupHref] = useState("/signup");
 
   const [formData, setFormData] = useState({
     email: "",
@@ -79,6 +81,34 @@ export default function SigninPage() {
   });
 
   const [error, setError] = useState("");
+
+  // Handle registration success and preserve redirect destination.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+
+    if (params.get("registered") === "true") {
+      toast.success("Account created successfully! Please sign in.", {
+        id: "registration-success",
+      });
+
+      params.delete("registered");
+
+      const remainingQuery = params.toString();
+      const cleanUrl = remainingQuery
+        ? `${window.location.pathname}?${remainingQuery}`
+        : window.location.pathname;
+
+      router.replace(cleanUrl, { scroll: false });
+    }
+
+    const redirectTo = getRedirectPath();
+
+    if (redirectTo !== "/") {
+      setSignupHref(
+        `/signup?redirect=${encodeURIComponent(redirectTo)}`
+      );
+    }
+  }, [router]);
 
   // Handle Google OAuth errors after returning to the sign-in page.
   useEffect(() => {
@@ -98,7 +128,7 @@ export default function SigninPage() {
       });
     }
 
-    // Remove the error parameter without leaving the sign-in page.
+    // Remove only the error parameter and preserve the redirect.
     params.delete("error");
 
     const remainingQuery = params.toString();
@@ -175,14 +205,19 @@ export default function SigninPage() {
     try {
       const redirectTo = getRedirectPath();
 
-      // Use the frontend origin for successful and failed OAuth callbacks.
       const callbackURL = `${window.location.origin}${redirectTo}`;
-      const errorCallbackURL = `${window.location.origin}/signin`;
+
+      const errorCallbackURL = new URL(
+        "/signin",
+        window.location.origin
+      );
+
+      errorCallbackURL.searchParams.set("redirect", redirectTo);
 
       const result = await authClient.signIn.social({
         provider: "google",
         callbackURL,
-        errorCallbackURL,
+        errorCallbackURL: errorCallbackURL.toString(),
       });
 
       if (result.error) {
@@ -406,7 +441,7 @@ export default function SigninPage() {
             <p className="mt-6 text-center text-xs text-foreground">
               Don&apos;t have an account?{" "}
               <Link
-                href="/signup"
+                href={signupHref}
                 className="font-semibold text-accent-brown transition hover:text-heading"
               >
                 Create Account
