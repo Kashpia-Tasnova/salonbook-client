@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "react-hot-toast";
@@ -80,18 +80,53 @@ export default function SigninPage() {
 
   const [error, setError] = useState("");
 
+  // Handle Google OAuth errors after returning to the sign-in page.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const googleError = params.get("error");
+
+    if (!googleError) return;
+
+    if (googleError === "signup_disabled") {
+      toast.error(
+        "This Google account is not registered. Please sign up first.",
+        { id: "google-signin-error" }
+      );
+    } else {
+      toast.error("Google sign in failed. Please try again.", {
+        id: "google-signin-error",
+      });
+    }
+
+    // Remove the error parameter without leaving the sign-in page.
+    params.delete("error");
+
+    const remainingQuery = params.toString();
+    const cleanUrl = remainingQuery
+      ? `${window.location.pathname}?${remainingQuery}`
+      : window.location.pathname;
+
+    router.replace(cleanUrl, { scroll: false });
+  }, [router]);
+
   // Email and password sign in
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      setError("Please enter a valid email address.");
+    const email = formData.email.trim();
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      const message = "Please enter a valid email address.";
+      setError(message);
+      toast.error(message);
       return;
     }
 
     if (!formData.password) {
-      setError("Please enter your password.");
+      const message = "Please enter your password.";
+      setError(message);
+      toast.error(message);
       return;
     }
 
@@ -101,14 +136,14 @@ export default function SigninPage() {
       const redirectTo = getRedirectPath();
 
       const result = await authClient.signIn.email({
-        email: formData.email.trim(),
+        email,
         password: formData.password,
         callbackURL: redirectTo,
       });
 
       if (result.error) {
         const message =
-          result.error.message || "Invalid email or password.";
+          "Email or password is incorrect. Please check your details or sign up if you don't have an account.";
 
         setError(message);
         toast.error(message);
@@ -122,7 +157,8 @@ export default function SigninPage() {
     } catch (error) {
       console.error("Sign in error:", error);
 
-      const message = "Something went wrong. Please try again.";
+      const message =
+        "Unable to sign in. Please check your email and password and try again.";
 
       setError(message);
       toast.error(message);
@@ -139,27 +175,31 @@ export default function SigninPage() {
     try {
       const redirectTo = getRedirectPath();
 
+      // Use the frontend origin for successful and failed OAuth callbacks.
+      const callbackURL = `${window.location.origin}${redirectTo}`;
+      const errorCallbackURL = `${window.location.origin}/signin`;
+
       const result = await authClient.signIn.social({
         provider: "google",
-        callbackURL: redirectTo,
+        callbackURL,
+        errorCallbackURL,
       });
 
       if (result.error) {
         const message =
-          result.error.message || "Google sign in failed.";
+          "Google sign in failed. Please try again or create an account first.";
 
         setError(message);
-        toast.error(message);
+        toast.error(message, { id: "google-signin-error" });
         setIsGoogleLoading(false);
       }
     } catch (error) {
       console.error("Google sign in error:", error);
 
-      const message =
-        "Google sign in is unavailable. Please try again.";
+      const message = "Google sign in is unavailable. Please try again.";
 
       setError(message);
-      toast.error(message);
+      toast.error(message, { id: "google-signin-error" });
       setIsGoogleLoading(false);
     }
   };
@@ -296,7 +336,7 @@ export default function SigninPage() {
                   }
                   required
                   autoComplete="email"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isGoogleLoading}
                   className="w-full rounded-xl border border-border bg-background-soft px-3.5 py-3 text-xs text-heading outline-none transition placeholder:text-foreground/60 focus:border-primary"
                 />
               </div>
@@ -321,7 +361,7 @@ export default function SigninPage() {
                     }
                     required
                     autoComplete="current-password"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isGoogleLoading}
                     className="w-full rounded-xl border border-border bg-background-soft px-3.5 py-3 pr-10 text-xs text-heading outline-none transition placeholder:text-foreground/60 focus:border-primary"
                   />
 

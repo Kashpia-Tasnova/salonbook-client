@@ -2,9 +2,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { toast } from "react-hot-toast";
 
 const navLinks = [
   { label: "Home", href: "/" },
@@ -19,24 +20,34 @@ interface UserAvatarProps {
   size?: string;
 }
 
-// User avatar component - declared outside Navbar.
+// User avatar component.
 function UserAvatar({
   image,
   name,
   size = "h-9 w-9",
 }: UserAvatarProps) {
+  const [imageFailed, setImageFailed] = useState(false);
+
+  // Reset image error when the user's image changes.
+  useEffect(() => {
+    setImageFailed(false);
+  }, [image]);
+
+  const firstLetter = name?.trim().charAt(0).toUpperCase() || "U";
+
   return (
     <div
       className={`${size} flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-background-blush text-sm font-semibold text-accent-brown`}
     >
-      {image ? (
+      {image && !imageFailed ? (
         <img
           src={image}
           alt={name || "User profile"}
           className="h-full w-full object-cover"
+          onError={() => setImageFailed(true)}
         />
       ) : (
-        name?.charAt(0).toUpperCase() || "U"
+        firstLetter
       )}
     </div>
   );
@@ -55,7 +66,7 @@ interface ProfileDropdownProps {
   handleLogout: () => Promise<void>;
 }
 
-// Profile dropdown component - declared outside Navbar.
+// Profile dropdown component.
 function ProfileDropdown({
   user,
   dashboardLink,
@@ -199,6 +210,8 @@ export default function Navbar() {
 
   // Logout
   const handleLogout = async () => {
+    if (isLoggingOut) return;
+
     setIsLoggingOut(true);
 
     try {
@@ -206,16 +219,22 @@ export default function Navbar() {
 
       if (result.error) {
         console.error("Logout failed:", result.error);
+
+        toast.error(result.error.message || "Logout failed. Please try again.");
         return;
       }
 
       setProfileOpen(false);
       setMenuOpen(false);
 
-      router.push("/");
+      toast.success("Logged out successfully!");
+
+      router.replace("/signin");
       router.refresh();
     } catch (error) {
       console.error("Logout error:", error);
+
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setIsLoggingOut(false);
     }

@@ -117,16 +117,24 @@ export default function SignupPage() {
     setIsGoogleLoading(true);
 
     try {
+      const callbackURL = `${window.location.origin}/`;
+
       const result = await authClient.signIn.social({
         provider: "google",
-        callbackURL: "/",
+        callbackURL,
+        requestSignUp: true,
       });
 
       if (result.error) {
-        setError(result.error.message || "Google signup failed.");
+        const message =
+          result.error.message || "Google signup failed.";
+
+        setError(message);
         setIsGoogleLoading(false);
       }
-    } catch {
+    } catch (error) {
+      console.error("Google signup error:", error);
+
       setError("Unable to continue with Google. Please try again.");
       setIsGoogleLoading(false);
     }
@@ -216,6 +224,7 @@ export default function SignupPage() {
         throw new Error(result.error.message || "Registration failed.");
       }
 
+      // Email signup redirects to the sign-in page.
       router.push("/signin?registered=true");
     } catch (err) {
       setError(
