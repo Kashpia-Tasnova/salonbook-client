@@ -4,6 +4,12 @@
 
 **SalonBook – Blush & Bloom** is a salon appointment booking web application where customers can explore salon services, book appointments, manage their bookings, and make secure online payments. It also provides an admin dashboard to manage salon services, categories, appointments, users, and transactions.
 
+## Live Website
+
+**Live Website:** https://salonbook-client-six-zeta.vercel.app/
+
+**Backend API:** https://salonbook-server-ydpb.onrender.com
+
 ## Important Features
 
 ### Customer Features
@@ -93,7 +99,7 @@ npm run dev
 
 Visit the following URL in your browser:
 
-[http://localhost:3000](http://localhost:3000)
+http://localhost:3000
 
 ### 4. Build for Production
 
@@ -118,17 +124,11 @@ The frontend requires the following environment variables:
 
 **Note:** Add the actual values to your local `.env.local` file. Do not upload environment files or secret values to GitHub.
 
-## Live Website Link
-
-**Live Website:** [Add your deployed frontend URL here]
-
 ## Client and Server Repository Links
 
-- **Client Repository:** [https://github.com/Kashpia-Tasnova/salonbook-client](https://github.com/Kashpia-Tasnova/salonbook-client)
-- **Server Repository:** [https://github.com/Kashpia-Tasnova/salonbook-server](https://github.com/Kashpia-Tasnova/salonbook-server)
+- **Client Repository:** https://github.com/Kashpia-Tasnova/salonbook-client
+- **Server Repository:** https://github.com/Kashpia-Tasnova/salonbook-server
 
 ## Author
 
 **SalonBook – Blush & Bloom**
-
-Assignment 9 – Category 002
