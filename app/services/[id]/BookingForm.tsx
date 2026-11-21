@@ -137,7 +137,7 @@ export default function BookingForm({
           <p>
             Price:{" "}
             <span className="font-semibold text-heading">
-              ৳{price.toLocaleString("en-BD")}
+              ${price.toLocaleString("en-BD")}
             </span>
           </p>
 

@@ -275,7 +275,7 @@ export default function AppointmentDetailsPage() {
               <div className="flex flex-wrap gap-5 mt-4">
                 <p className="text-sm text-[#7A7470]">
                   <span className="text-[#46322D] font-semibold">
-                    ৳{Number(appointment.price).toLocaleString("en-BD")}
+                    ${Number(appointment.price).toLocaleString("en-BD")}
                   </span>
                   <span className="ml-1">service price</span>
                 </p>
@@ -365,7 +365,7 @@ export default function AppointmentDetailsPage() {
             </span>
 
             <span className="text-xl font-semibold text-[#46322D]">
-              ৳{Number(appointment.price).toLocaleString("en-BD")}
+              ${Number(appointment.price).toLocaleString("en-BD")}
             </span>
           </div>
         </div>

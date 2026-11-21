@@ -46,7 +46,9 @@ export default function MyAppointmentsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [cancelError, setCancelError] = useState("");
+  const [paymentError, setPaymentError] = useState("");
   const [cancellingId, setCancellingId] = useState("");
+  const [payingId, setPayingId] = useState("");
 
   // Fetch appointments belonging to the logged-in customer.
   useEffect(() => {
@@ -177,6 +179,45 @@ export default function MyAppointmentsPage() {
     }
   };
 
+  // Start Stripe Checkout for a confirmed, unpaid appointment.
+  const handlePayment = async (appointmentId: string) => {
+    try {
+      setPayingId(appointmentId);
+      setPaymentError("");
+
+      const response = await fetch(
+        `${API_URL}/api/payment/create-checkout-session`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({ appointmentId }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success || !data.url) {
+        throw new Error(
+          data.message || "Unable to start payment. Please try again."
+        );
+      }
+
+      // Redirect the customer to Stripe's secure Checkout page.
+      window.location.assign(data.url);
+    } catch (err) {
+      setPaymentError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong while starting payment."
+      );
+
+      setPayingId("");
+    }
+  };
+
   // Cancel a pending appointment.
   const handleCancelAppointment = async (appointmentId: string) => {
     const confirmed = window.confirm(
@@ -205,7 +246,6 @@ export default function MyAppointmentsPage() {
         );
       }
 
-      // Update the appointment immediately in the UI.
       setAppointments((previousAppointments) =>
         previousAppointments.map((appointment) =>
           appointment._id === appointmentId
@@ -310,7 +350,7 @@ export default function MyAppointmentsPage() {
           ))}
         </div>
 
-        {/* Error */}
+        {/* Errors */}
         {error && (
           <div className="m-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 sm:mx-7">
             {error}
@@ -320,6 +360,12 @@ export default function MyAppointmentsPage() {
         {cancelError && (
           <div className="m-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 sm:mx-7">
             {cancelError}
+          </div>
+        )}
+
+        {paymentError && (
+          <div className="m-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 sm:mx-7">
+            {paymentError}
           </div>
         )}
 
@@ -454,7 +500,7 @@ export default function MyAppointmentsPage() {
 
                     <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#E6E1DD] pt-4">
                       <p className="font-serif text-xl text-[#46322D]">
-                        ৳
+                        $
                         {Number(appointment.price).toLocaleString(
                           "en-BD"
                         )}
@@ -466,7 +512,7 @@ export default function MyAppointmentsPage() {
                           href={`/dashboard/customer/appointments/${appointment._id}`}
                           className="border border-[#B39A7D] px-5 py-2.5 text-xs font-semibold text-[#967467] transition hover:bg-[#F5ECE8]"
                         >
-                          View Details 
+                          View Details
                         </Link>
 
                         {/* Cancel Appointment */}
@@ -488,13 +534,23 @@ export default function MyAppointmentsPage() {
                           </button>
                         )}
 
+                        {/* Stripe Payment */}
                         {appointment.status.toLowerCase() ===
                           "confirmed" &&
                           appointment.paymentStatus.toLowerCase() ===
                             "unpaid" && (
-                            <span className="text-xs font-medium text-[#967467]">
-                              Payment will be available soon.
-                            </span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handlePayment(appointment._id)
+                              }
+                              disabled={payingId === appointment._id}
+                              className="bg-[#B39A7D] px-5 py-2.5 text-xs font-semibold text-white transition hover:bg-[#967467] disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {payingId === appointment._id
+                                ? "Redirecting to Payment..."
+                                : "Pay Now"}
+                            </button>
                           )}
                       </div>
                     </div>
@@ -534,9 +590,9 @@ export default function MyAppointmentsPage() {
             </h2>
 
             <p className="mt-2 text-sm leading-6 text-[#7A7470]">
-              You can cancel pending appointments. Once an
-              appointment is confirmed by our salon, payment will
-              become available through our secure payment system.
+              You can cancel pending appointments. Once your
+              appointment is confirmed by our salon, you can pay
+              securely through Stripe using the Pay Now button.
             </p>
           </div>
         </div>

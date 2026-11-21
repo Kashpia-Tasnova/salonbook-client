@@ -314,7 +314,7 @@ export default function CustomerDashboard() {
                       </p>
 
                       <p className="mt-1 text-xs text-[#967467]">
-                        ৳{Number(appointment.price).toLocaleString("en-BD")}
+                        ${Number(appointment.price).toLocaleString("en-BD")}
                       </p>
                     </div>
                   </div>

@@ -63,7 +63,7 @@ const statisticCards = [
     key: "totalTransactions",
     title: "Total Transactions",
     description: "Recorded transactions",
-    icon: "৳",
+    icon: "$",
   },
 ] as const;
 

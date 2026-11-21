@@ -252,7 +252,7 @@ export default function ServiceDetailsPage() {
                 </p>
 
                 <p className="mt-2 font-heading text-2xl text-heading sm:text-3xl">
-                  ৳{service.price.toLocaleString("en-BD")}
+                  ${service.price.toLocaleString("en-BD")}
                 </p>
               </div>
 

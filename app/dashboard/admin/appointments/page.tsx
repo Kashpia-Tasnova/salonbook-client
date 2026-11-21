@@ -546,7 +546,7 @@ export default function AdminAppointmentsPage() {
                       </p>
 
                       <p className="mt-1 text-xl font-semibold text-[#46322D]">
-                        ৳{appointment.price?.toLocaleString("en-BD")}
+                        ${appointment.price?.toLocaleString("en-BD")}
                       </p>
                     </div>
 

@@ -35,7 +35,7 @@ const navigation = [
   {
     label: "Transactions",
     href: "/dashboard/admin/transactions",
-    icon: "৳",
+    icon: "$",
   },
   {
     label: "My Profile",

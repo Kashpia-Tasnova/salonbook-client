@@ -179,7 +179,7 @@ export default function ServiceDetailsPage() {
                   </p>
 
                   <p className="mt-1 font-serif text-2xl text-[#46322D]">
-                    ৳{service.price}
+                    ${service.price}
                   </p>
                 </div>
 

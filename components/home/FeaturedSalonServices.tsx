@@ -196,7 +196,7 @@ export default function FeaturedSalonServices() {
                         </p>
 
                         <p className="mt-1 text-lg font-semibold text-heading">
-                          ৳{service.price.toLocaleString("en-BD")}
+                          ${service.price.toLocaleString("en-BD")}
                         </p>
                       </div>
 

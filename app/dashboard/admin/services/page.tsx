@@ -349,7 +349,7 @@ export default function ManageServicesPage() {
 
                     <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
                       <span className="font-semibold text-[#46322D]">
-                        ৳{service.price}
+                        ${service.price}
                       </span>
 
                       <span className="text-[#7A7470]">
