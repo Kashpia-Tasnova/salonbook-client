@@ -15,14 +15,22 @@ export default function CustomerProfilePage() {
 
   const [name, setName] = useState<string | null>(null);
   const [phone, setPhone] = useState<string | null>(null);
-  const [image, setImage] = useState("");
+
+  // null = use the original session image.
+  // "" = explicitly show the user's initial.
+  // URL = show the selected or uploaded image.
+  const [image, setImage] = useState<string | null>(null);
+
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const currentName = user?.name || "";
   const currentEmail = user?.email || "";
-  const currentImage = image || user?.image || "";
+  const sessionImage = user?.image || "";
+
+  const currentImage =
+    image !== null ? image : sessionImage;
 
   const userPhone =
     (user as typeof user & { phone?: string })?.phone || "";
@@ -31,10 +39,16 @@ export default function CustomerProfilePage() {
   const displayPhone = phone ?? userPhone;
   const initial = displayName.charAt(0).toUpperCase() || "U";
 
+  const revokePreviewImage = () => {
+    if (image?.startsWith("blob:")) {
+      URL.revokeObjectURL(image);
+    }
+  };
+
   const handleEdit = () => {
     setName(displayName);
     setPhone(displayPhone);
-    setImage("");
+    setImage(sessionImage);
     setSelectedFile(null);
     setIsEditing(true);
   };
@@ -46,7 +60,11 @@ export default function CustomerProfilePage() {
 
     if (!file) return;
 
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ];
 
     if (!allowedTypes.includes(file.type)) {
       toast.error("Please select a JPG, PNG, or WEBP image.");
@@ -60,12 +78,20 @@ export default function CustomerProfilePage() {
       return;
     }
 
-    if (image.startsWith("blob:")) {
-      URL.revokeObjectURL(image);
-    }
+    revokePreviewImage();
 
     setSelectedFile(file);
     setImage(URL.createObjectURL(file));
+  };
+
+  const handleRemovePhoto = () => {
+    revokePreviewImage();
+
+    setSelectedFile(null);
+
+    // Empty string tells the backend to restore the original
+    // Google photo, or clear the image for email/password users.
+    setImage("");
   };
 
   const handleSave = async () => {
@@ -117,7 +143,6 @@ export default function CustomerProfilePage() {
         uploadedImageUrl = uploadResult.imageUrl;
       }
 
-      // Update the authenticated user's profile.
       const updateData: {
         name: string;
         phone: string;
@@ -129,6 +154,10 @@ export default function CustomerProfilePage() {
 
       if (uploadedImageUrl) {
         updateData.image = uploadedImageUrl;
+      } else if (image === "") {
+        // Explicitly request photo removal.
+        // The backend restores the original Google photo if available.
+        updateData.image = "";
       }
 
       const response = await fetch(
@@ -146,24 +175,32 @@ export default function CustomerProfilePage() {
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(result.message || "Profile update failed.");
+        throw new Error(
+          result.message || "Profile update failed."
+        );
       }
+
+      // Get the image returned by the backend.
+      const savedImage =
+        typeof result.profile?.image === "string"
+          ? result.profile.image
+          : uploadedImageUrl || "";
+
+      revokePreviewImage();
 
       // Refresh Better Auth session information.
       await authClient.getSession();
 
-      if (image.startsWith("blob:")) {
-        URL.revokeObjectURL(image);
-      }
-
       // Keep the saved values visible immediately.
       setName(trimmedName);
       setPhone(trimmedPhone);
-      setImage("");
+      setImage(savedImage);
       setSelectedFile(null);
       setIsEditing(false);
 
-      toast.success("Your profile has been updated successfully!");
+      toast.success(
+        "Your profile has been updated successfully!"
+      );
     } catch (error) {
       console.error("Profile update error:", error);
 
@@ -178,13 +215,11 @@ export default function CustomerProfilePage() {
   };
 
   const handleCancel = () => {
-    if (image.startsWith("blob:")) {
-      URL.revokeObjectURL(image);
-    }
+    revokePreviewImage();
 
     setName(currentName);
     setPhone(userPhone);
-    setImage("");
+    setImage(null);
     setSelectedFile(null);
     setIsEditing(false);
   };
@@ -208,7 +243,9 @@ export default function CustomerProfilePage() {
       {isPending ? (
         <div className="animate-pulse border border-[#E6E1DD] bg-white p-8">
           <div className="h-24 w-24 rounded-full bg-[#F5ECE8]" />
+
           <div className="mt-5 h-5 w-48 bg-[#F5ECE8]" />
+
           <div className="mt-3 h-4 w-64 bg-[#F5ECE8]" />
         </div>
       ) : !user ? (
@@ -216,6 +253,7 @@ export default function CustomerProfilePage() {
           <h2 className="font-serif text-xl text-[#46322D]">
             Unable to load your profile
           </h2>
+
           <p className="mt-2 text-sm text-[#7A7470]">
             Please sign in to view your profile information.
           </p>
@@ -285,7 +323,9 @@ export default function CustomerProfilePage() {
                   <input
                     type="text"
                     value={name ?? currentName}
-                    onChange={(event) => setName(event.target.value)}
+                    onChange={(event) =>
+                      setName(event.target.value)
+                    }
                     className="w-full border border-[#E6E1DD] bg-[#FDFCFC] px-4 py-3 text-sm text-[#46322D] outline-none focus:border-[#B39A7D]"
                     placeholder="Enter your full name"
                   />
@@ -319,7 +359,9 @@ export default function CustomerProfilePage() {
                   <input
                     type="tel"
                     value={phone ?? userPhone}
-                    onChange={(event) => setPhone(event.target.value)}
+                    onChange={(event) =>
+                      setPhone(event.target.value)
+                    }
                     className="w-full border border-[#E6E1DD] bg-[#FDFCFC] px-4 py-3 text-sm text-[#46322D] outline-none focus:border-[#B39A7D]"
                     placeholder="Enter your phone number"
                   />
@@ -346,6 +388,17 @@ export default function CustomerProfilePage() {
                   <p className="mt-2 text-xs text-[#A39A94]">
                     JPG, PNG, or WEBP. Maximum file size: 5MB.
                   </p>
+
+                  {currentImage && (
+                    <button
+                      type="button"
+                      onClick={handleRemovePhoto}
+                      disabled={isSaving}
+                      className="mt-3 border border-red-200 px-4 py-2 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Remove Photo
+                    </button>
+                  )}
                 </div>
               )}
 
