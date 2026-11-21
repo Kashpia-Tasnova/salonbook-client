@@ -1,6 +1,9 @@
 
 import type { NextConfig } from "next";
 
+const authApiUrl =
+  process.env.AUTH_API_URL || "http://localhost:5000";
+
 const nextConfig: NextConfig = {
   turbopack: {
     rules: {
@@ -13,9 +16,16 @@ const nextConfig: NextConfig = {
 
   async rewrites() {
     return [
+      // Better Auth proxy
       {
         source: "/api/auth/:path*",
-        destination: `${process.env.AUTH_API_URL || "http://localhost:5000"}/api/auth/:path*`,
+        destination: `${authApiUrl}/api/auth/:path*`,
+      },
+
+      // Protected API proxy (appointments, bookings, etc.)
+      {
+        source: "/api/protected/:path*",
+        destination: `${authApiUrl}/api/protected/:path*`,
       },
     ];
   },

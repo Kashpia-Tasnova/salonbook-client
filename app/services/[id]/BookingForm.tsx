@@ -10,9 +10,6 @@ type BookingFormProps = {
   duration: string;
 };
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
 const timeSlots = [
   "10:00 AM",
   "11:00 AM",
@@ -62,22 +59,20 @@ export default function BookingForm({
     try {
       setLoading(true);
 
-      const response = await fetch(
-        `${API_URL}/api/protected/appointments`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            serviceId,
-            date,
-            time,
-            message,
-          }),
-        }
-      );
+      // Send the request through the same-origin frontend proxy.
+      const response = await fetch("/api/protected/appointments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          serviceId,
+          date,
+          time,
+          message,
+        }),
+      });
 
       const data = await response.json();
 
