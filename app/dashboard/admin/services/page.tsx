@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -35,44 +35,62 @@ export default function ManageServicesPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [actionId, setActionId] = useState<string | null>(null);
+  const [refreshCount, setRefreshCount] = useState(0);
 
-  // Fetch all services
-  const fetchServices = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError("");
-
-      const response = await fetch(
-        `${API_URL}/api/protected/admin/services`,
-        {
-          method: "GET",
-          credentials: "include",
-        }
-      );
-
-      const data: ServicesResponse = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to load services.");
-      }
-
-      setServices(data.services || []);
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Something went wrong while loading services."
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
+  // Fetch services whenever refreshCount changes.
   useEffect(() => {
-    fetchServices();
-  }, [fetchServices]);
+    const controller = new AbortController();
 
-  // Activate or deactivate service
+    const loadServices = async () => {
+      try {
+        setIsLoading(true);
+        setError("");
+
+        const response = await fetch(
+          `${API_URL}/api/protected/admin/services`,
+          {
+            method: "GET",
+            credentials: "include",
+            cache: "no-store",
+            signal: controller.signal,
+          }
+        );
+
+        const data: ServicesResponse = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to load services.");
+        }
+
+        setServices(data.services || []);
+      } catch (err) {
+        if (controller.signal.aborted) return;
+
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Something went wrong while loading services."
+        );
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadServices();
+
+    return () => {
+      controller.abort();
+    };
+  }, [refreshCount]);
+
+  // Refresh services from button clicks and after actions.
+  const refreshServices = () => {
+    setRefreshCount((count) => count + 1);
+  };
+
+  // Activate or deactivate service.
   const handleToggleStatus = async (service: SalonService) => {
     try {
       setActionId(service._id);
@@ -105,7 +123,7 @@ export default function ManageServicesPage() {
           : "Service activated successfully."
       );
 
-      await fetchServices();
+      refreshServices();
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to update service."
@@ -115,7 +133,7 @@ export default function ManageServicesPage() {
     }
   };
 
-  // Delete service (backend performs soft deletion)
+  // Delete service (backend performs soft deletion).
   const handleDeleteService = async (service: SalonService) => {
     const confirmed = window.confirm(
       `Are you sure you want to delete "${service.name}"?`
@@ -143,7 +161,7 @@ export default function ManageServicesPage() {
       }
 
       setMessage("Service deleted successfully.");
-      await fetchServices();
+      refreshServices();
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to delete service."
@@ -162,7 +180,6 @@ export default function ManageServicesPage() {
   return (
     <div className="min-h-screen bg-[#FDFCFC] px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
-
         {/* Page Heading */}
         <div className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
@@ -191,27 +208,21 @@ export default function ManageServicesPage() {
         {/* Statistics */}
         <div className="mb-7 grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="border border-[#E6E1DD] bg-white p-5">
-            <p className="text-sm text-[#7A7470]">
-              Total Services
-            </p>
+            <p className="text-sm text-[#7A7470]">Total Services</p>
             <p className="mt-2 font-serif text-3xl text-[#46322D]">
               {services.length}
             </p>
           </div>
 
           <div className="border border-[#E6E1DD] bg-white p-5">
-            <p className="text-sm text-[#7A7470]">
-              Active Services
-            </p>
+            <p className="text-sm text-[#7A7470]">Active Services</p>
             <p className="mt-2 font-serif text-3xl text-[#967467]">
               {activeServices}
             </p>
           </div>
 
           <div className="border border-[#E6E1DD] bg-white p-5">
-            <p className="text-sm text-[#7A7470]">
-              Inactive Services
-            </p>
+            <p className="text-sm text-[#7A7470]">Inactive Services</p>
             <p className="mt-2 font-serif text-3xl text-[#967467]">
               {inactiveServices}
             </p>
@@ -234,7 +245,6 @@ export default function ManageServicesPage() {
 
         {/* Services Container */}
         <div className="border border-[#E6E1DD] bg-white">
-
           {/* Section Header */}
           <div className="flex flex-col justify-between gap-3 border-b border-[#E6E1DD] px-5 py-5 sm:flex-row sm:items-center">
             <div>
@@ -248,7 +258,7 @@ export default function ManageServicesPage() {
             </div>
 
             <button
-              onClick={fetchServices}
+              onClick={refreshServices}
               disabled={isLoading}
               className="border border-[#E6E1DD] px-4 py-2 text-xs font-medium text-[#967467] transition hover:bg-[#F5ECE8] disabled:opacity-50"
             >
@@ -275,12 +285,9 @@ export default function ManageServicesPage() {
               ))}
             </div>
           ) : services.length === 0 ? (
-
             /* Empty State */
             <div className="px-5 py-16 text-center">
-              <div className="mb-4 text-4xl text-[#B39A7D]">
-                ✿
-              </div>
+              <div className="mb-4 text-4xl text-[#B39A7D]">✿</div>
 
               <h3 className="font-serif text-xl text-[#46322D]">
                 No Services Found
@@ -297,9 +304,7 @@ export default function ManageServicesPage() {
                 Add Your First Service
               </Link>
             </div>
-
           ) : (
-
             /* Service Cards */
             <div className="space-y-4 p-4 sm:p-5">
               {services.map((service) => (
@@ -307,7 +312,6 @@ export default function ManageServicesPage() {
                   key={service._id}
                   className="flex flex-col gap-4 border border-[#E6E1DD] p-4 transition hover:border-[#D5B6A9] sm:flex-row sm:items-center"
                 >
-
                   {/* Service Image */}
                   <div className="h-24 w-full shrink-0 overflow-hidden bg-[#F5ECE8] sm:h-24 sm:w-24">
                     <img
@@ -356,7 +360,6 @@ export default function ManageServicesPage() {
 
                   {/* Service Actions */}
                   <div className="flex w-full shrink-0 flex-col gap-3 sm:w-44">
-
                     {/* View and Edit */}
                     <div className="grid grid-cols-2 gap-2">
                       <Link
@@ -378,7 +381,6 @@ export default function ManageServicesPage() {
 
                     {/* Activate / Deactivate and Delete */}
                     <div className="flex items-center gap-2 border-t border-[#E6E1DD] pt-3">
-
                       <button
                         onClick={() => handleToggleStatus(service)}
                         disabled={actionId === service._id}

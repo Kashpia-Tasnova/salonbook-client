@@ -2,7 +2,6 @@
 "use client";
 
 import {
-  useCallback,
   useEffect,
   useRef,
   useState,
@@ -37,6 +36,7 @@ export default function ManageCategoriesPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [actionId, setActionId] = useState<string | null>(null);
+  const [refreshCount, setRefreshCount] = useState(0);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] =
@@ -51,41 +51,62 @@ export default function ManageCategoriesPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch all categories.
-  const fetchCategories = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError("");
-
-      const response = await fetch(
-        `${API_URL}/api/protected/admin/categories`,
-        {
-          method: "GET",
-          credentials: "include",
-        }
-      );
-
-      const data: CategoriesResponse = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to load categories.");
-      }
-
-      setCategories(data.categories || []);
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Something went wrong while loading categories."
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
+  // Fetch categories whenever the refresh counter changes.
   useEffect(() => {
-    fetchCategories();
-  }, [fetchCategories]);
+    const controller = new AbortController();
+
+    const loadCategories = async () => {
+      try {
+        const response = await fetch(
+          `${API_URL}/api/protected/admin/categories`,
+          {
+            method: "GET",
+            credentials: "include",
+            cache: "no-store",
+            signal: controller.signal,
+          }
+        );
+
+        const data: CategoriesResponse = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.message || "Failed to load categories."
+          );
+        }
+
+        setCategories(data.categories || []);
+        setError("");
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") {
+          return;
+        }
+
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Something went wrong while loading categories."
+        );
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void loadCategories();
+
+    return () => {
+      controller.abort();
+    };
+  }, [refreshCount]);
+
+  // Refresh categories from user actions.
+  const refreshCategories = () => {
+    setIsLoading(true);
+    setError("");
+    setRefreshCount((previous) => previous + 1);
+  };
 
   // Reset the category form.
   const resetForm = () => {
@@ -245,8 +266,7 @@ export default function ManageCategoriesPage() {
 
       setIsModalOpen(false);
       resetForm();
-
-      await fetchCategories();
+      refreshCategories();
     } catch (err) {
       setError(
         err instanceof Error
@@ -291,7 +311,7 @@ export default function ManageCategoriesPage() {
           : "Category activated successfully."
       );
 
-      await fetchCategories();
+      refreshCategories();
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to update category."
@@ -329,7 +349,7 @@ export default function ManageCategoriesPage() {
       }
 
       setMessage("Category deleted successfully.");
-      await fetchCategories();
+      refreshCategories();
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to delete category."
@@ -426,7 +446,7 @@ export default function ManageCategoriesPage() {
             </div>
 
             <button
-              onClick={fetchCategories}
+              onClick={refreshCategories}
               disabled={isLoading}
               className="border border-[#E6E1DD] px-4 py-2 text-xs font-medium text-[#967467] transition hover:bg-[#F5ECE8] disabled:opacity-50"
             >
@@ -515,7 +535,7 @@ export default function ManageCategoriesPage() {
                       {category.description || "No description provided."}
                     </p>
 
-                    {/* Actions pushed to the bottom of every card */}
+                    {/* Actions */}
                     <div className="mt-auto pt-4">
                       <div className="grid grid-cols-2 gap-2">
                         <button

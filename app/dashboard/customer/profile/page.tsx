@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "react-hot-toast";
 
@@ -13,8 +13,8 @@ export default function CustomerProfilePage() {
 
   const user = session?.user;
 
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [name, setName] = useState<string | null>(null);
+  const [phone, setPhone] = useState<string | null>(null);
   const [image, setImage] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -24,23 +24,16 @@ export default function CustomerProfilePage() {
   const currentEmail = user?.email || "";
   const currentImage = image || user?.image || "";
 
-  const displayName = name || currentName;
+  const userPhone =
+    (user as typeof user & { phone?: string })?.phone || "";
+
+  const displayName = name ?? currentName;
+  const displayPhone = phone ?? userPhone;
   const initial = displayName.charAt(0).toUpperCase() || "U";
 
-  const userPhone = (
-    user as typeof user & { phone?: string }
-  )?.phone || "";
-
-  useEffect(() => {
-    if (user) {
-      setName(user.name || "");
-      setPhone(userPhone);
-    }
-  }, [user, userPhone]);
-
   const handleEdit = () => {
-    setName(currentName);
-    setPhone(userPhone);
+    setName(displayName);
+    setPhone(displayPhone);
     setImage("");
     setSelectedFile(null);
     setIsEditing(true);
@@ -76,17 +69,20 @@ export default function CustomerProfilePage() {
   };
 
   const handleSave = async () => {
-    if (!name.trim()) {
+    const trimmedName = (name ?? currentName).trim();
+    const trimmedPhone = (phone ?? userPhone).trim();
+
+    if (!trimmedName) {
       toast.error("Please enter your full name.");
       return;
     }
 
-    if (name.trim().length > 100) {
+    if (trimmedName.length > 100) {
       toast.error("Name cannot exceed 100 characters.");
       return;
     }
 
-    if (phone.length > 20) {
+    if (trimmedPhone.length > 20) {
       toast.error("Phone number cannot exceed 20 characters.");
       return;
     }
@@ -127,8 +123,8 @@ export default function CustomerProfilePage() {
         phone: string;
         image?: string;
       } = {
-        name: name.trim(),
-        phone: phone.trim(),
+        name: trimmedName,
+        phone: trimmedPhone,
       };
 
       if (uploadedImageUrl) {
@@ -160,6 +156,9 @@ export default function CustomerProfilePage() {
         URL.revokeObjectURL(image);
       }
 
+      // Keep the saved values visible immediately.
+      setName(trimmedName);
+      setPhone(trimmedPhone);
       setImage("");
       setSelectedFile(null);
       setIsEditing(false);
@@ -285,14 +284,14 @@ export default function CustomerProfilePage() {
                 {isEditing ? (
                   <input
                     type="text"
-                    value={name}
+                    value={name ?? currentName}
                     onChange={(event) => setName(event.target.value)}
                     className="w-full border border-[#E6E1DD] bg-[#FDFCFC] px-4 py-3 text-sm text-[#46322D] outline-none focus:border-[#B39A7D]"
                     placeholder="Enter your full name"
                   />
                 ) : (
                   <p className="border border-[#E6E1DD] bg-[#FDFCFC] px-4 py-3 text-sm text-[#46322D]">
-                    {currentName}
+                    {displayName}
                   </p>
                 )}
               </div>
@@ -319,14 +318,14 @@ export default function CustomerProfilePage() {
                 {isEditing ? (
                   <input
                     type="tel"
-                    value={phone}
+                    value={phone ?? userPhone}
                     onChange={(event) => setPhone(event.target.value)}
                     className="w-full border border-[#E6E1DD] bg-[#FDFCFC] px-4 py-3 text-sm text-[#46322D] outline-none focus:border-[#B39A7D]"
                     placeholder="Enter your phone number"
                   />
                 ) : (
                   <p className="border border-[#E6E1DD] bg-[#FDFCFC] px-4 py-3 text-sm text-[#46322D]">
-                    {userPhone || "Not added yet"}
+                    {displayPhone || "Not added yet"}
                   </p>
                 )}
               </div>

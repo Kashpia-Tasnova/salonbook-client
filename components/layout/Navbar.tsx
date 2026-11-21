@@ -13,70 +13,58 @@ const navLinks = [
   { label: "Contact", href: "/#contact" },
 ];
 
-export default function Navbar() {
-  const router = useRouter();
+interface UserAvatarProps {
+  image?: string | null;
+  name?: string | null;
+  size?: string;
+}
 
-  const { data: session, isPending } = authClient.useSession();
-
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-
-  const user = session?.user;
-
-  // Better Auth custom role will be used when role management is configured.
-  const userRole = (
-    user as typeof user & { role?: string }
-  )?.role;
-
-  const dashboardLink =
-    userRole === "admin"
-      ? "/dashboard/admin"
-      : "/dashboard/customer";
-
-  // Logout
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
-
-    try {
-      const result = await authClient.signOut();
-
-      if (result.error) {
-        console.error("Logout failed:", result.error);
-        return;
-      }
-
-      setProfileOpen(false);
-      setMenuOpen(false);
-
-      router.push("/");
-      router.refresh();
-    } catch (error) {
-      console.error("Logout error:", error);
-    } finally {
-      setIsLoggingOut(false);
-    }
-  };
-
-  // User avatar
-  const UserAvatar = ({ size = "h-9 w-9" }: { size?: string }) => (
+// User avatar component - declared outside Navbar.
+function UserAvatar({
+  image,
+  name,
+  size = "h-9 w-9",
+}: UserAvatarProps) {
+  return (
     <div
       className={`${size} flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-background-blush text-sm font-semibold text-accent-brown`}
     >
-      {user?.image ? (
+      {image ? (
         <img
-          src={user.image}
-          alt={user.name || "User profile"}
+          src={image}
+          alt={name || "User profile"}
           className="h-full w-full object-cover"
         />
       ) : (
-        user?.name?.charAt(0).toUpperCase() || "U"
+        name?.charAt(0).toUpperCase() || "U"
       )}
     </div>
   );
+}
 
-  // Profile dropdown
-  const ProfileDropdown = () => (
+interface ProfileDropdownProps {
+  user: {
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+  };
+  dashboardLink: string;
+  profileOpen: boolean;
+  setProfileOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  isLoggingOut: boolean;
+  handleLogout: () => Promise<void>;
+}
+
+// Profile dropdown component - declared outside Navbar.
+function ProfileDropdown({
+  user,
+  dashboardLink,
+  profileOpen,
+  setProfileOpen,
+  isLoggingOut,
+  handleLogout,
+}: ProfileDropdownProps) {
+  return (
     <div className="relative">
       <button
         type="button"
@@ -85,10 +73,10 @@ export default function Navbar() {
         aria-label="Open profile menu"
         className="flex items-center gap-2 rounded-full border border-border bg-[#F5ECE8] px-3 py-2 shadow-sm transition-all duration-200 hover:bg-[#E4DBD8]"
       >
-        <UserAvatar />
+        <UserAvatar image={user.image} name={user.name} />
 
         <span className="max-w-[120px] truncate text-[13px] font-medium text-heading">
-          {user?.name || "My Account"}
+          {user.name || "My Account"}
         </span>
 
         <svg
@@ -113,15 +101,19 @@ export default function Navbar() {
         <div className="absolute right-0 top-full z-50 mt-3 w-64 overflow-hidden rounded-2xl border border-border bg-white shadow-xl">
           {/* User Information */}
           <div className="flex items-center gap-3 border-b border-border px-4 py-4">
-            <UserAvatar size="h-11 w-11" />
+            <UserAvatar
+              image={user.image}
+              name={user.name}
+              size="h-11 w-11"
+            />
 
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-heading">
-                {user?.name}
+                {user.name}
               </p>
 
               <p className="truncate text-xs text-foreground">
-                {user?.email}
+                {user.email}
               </p>
             </div>
           </div>
@@ -182,6 +174,52 @@ export default function Navbar() {
       )}
     </div>
   );
+}
+
+export default function Navbar() {
+  const router = useRouter();
+
+  const { data: session, isPending } = authClient.useSession();
+
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const user = session?.user;
+
+  // Better Auth custom role.
+  const userRole = (
+    user as typeof user & { role?: string }
+  )?.role;
+
+  const dashboardLink =
+    userRole === "admin"
+      ? "/dashboard/admin"
+      : "/dashboard/customer";
+
+  // Logout
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+
+    try {
+      const result = await authClient.signOut();
+
+      if (result.error) {
+        console.error("Logout failed:", result.error);
+        return;
+      }
+
+      setProfileOpen(false);
+      setMenuOpen(false);
+
+      router.push("/");
+      router.refresh();
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white shadow-sm">
@@ -215,7 +253,14 @@ export default function Navbar() {
           {isPending ? (
             <div className="h-9 w-24 animate-pulse rounded-full bg-background-blush" />
           ) : user ? (
-            <ProfileDropdown />
+            <ProfileDropdown
+              user={user}
+              dashboardLink={dashboardLink}
+              profileOpen={profileOpen}
+              setProfileOpen={setProfileOpen}
+              isLoggingOut={isLoggingOut}
+              handleLogout={handleLogout}
+            />
           ) : (
             <>
               <Link
@@ -300,7 +345,11 @@ export default function Navbar() {
                 <div className="flex flex-col gap-4">
                   {/* Mobile User Information */}
                   <div className="flex items-center gap-3 rounded-2xl border border-border bg-[#F5ECE8] p-3 shadow-sm">
-                    <UserAvatar size="h-11 w-11" />
+                    <UserAvatar
+                      image={user.image}
+                      name={user.name}
+                      size="h-11 w-11"
+                    />
 
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-heading">

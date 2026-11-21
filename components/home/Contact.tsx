@@ -35,7 +35,7 @@ export default function Contact() {
           </p>
 
           <h2 className="font-heading text-4xl leading-tight text-heading sm:text-5xl lg:text-6xl">
-            We can't wait
+            We can&apos;t wait
             <span className="block italic">to welcome you.</span>
           </h2>
 

@@ -43,13 +43,16 @@ function ServicesContent() {
   const [categories, setCategories] = useState<Category[]>([]);
 
   const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [categoryOverride, setCategoryOverride] = useState<{
+    categoryParam: string | null;
+    value: string;
+  } | null>(null);
   const [sortOrder, setSortOrder] = useState("default");
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Fetch active services and categories from the backend
+  // Fetch active services and categories from the backend.
   useEffect(() => {
     const controller = new AbortController();
 
@@ -118,7 +121,7 @@ function ServicesContent() {
     return () => controller.abort();
   }, []);
 
-  // Convert category names into URL-friendly slugs
+  // Convert category names into URL-friendly slugs.
   const slugify = (value: string) =>
     value
       .toLowerCase()
@@ -127,27 +130,24 @@ function ServicesContent() {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "");
 
-  // Read category from URL and match it with the database category
-  useEffect(() => {
-    const categoryParam = searchParams.get("category");
+  // Read the category from the URL and match it with the database.
+  const categoryParam = searchParams.get("category");
 
-    if (!categoryParam) {
-      setSelectedCategory("all");
-      return;
-    }
+  const matchedCategory = categories.find(
+    (category) =>
+      category.slug.toLowerCase() === categoryParam?.toLowerCase() ||
+      slugify(category.name) === categoryParam?.toLowerCase()
+  );
 
-    const matchedCategory = categories.find(
-      (category) =>
-        category.slug.toLowerCase() === categoryParam.toLowerCase() ||
-        slugify(category.name) === categoryParam.toLowerCase()
-    );
+  const urlSelectedCategory = matchedCategory?.name || "all";
 
-    setSelectedCategory(
-      matchedCategory ? matchedCategory.name : "all"
-    );
-  }, [searchParams, categories]);
+  // Use the manually selected category when it belongs to the current URL.
+  const selectedCategory =
+    categoryOverride?.categoryParam === categoryParam
+      ? categoryOverride.value
+      : urlSelectedCategory;
 
-  // Search, filter and sort services
+  // Search, filter and sort services.
   const filteredServices = useMemo(() => {
     let result = services.filter((service) => {
       const matchesSearch = service.name
@@ -171,13 +171,15 @@ function ServicesContent() {
     return result;
   }, [services, search, selectedCategory, sortOrder]);
 
-  // Clear search and filters
+  // Clear search and filters.
   const clearFilters = () => {
     setSearch("");
-    setSelectedCategory("all");
+    setCategoryOverride({
+      categoryParam: null,
+      value: "all",
+    });
     setSortOrder("default");
 
-    // Remove category from URL
     window.history.replaceState(null, "", "/services");
   };
 
@@ -188,7 +190,6 @@ function ServicesContent() {
 
   return (
     <main className="min-h-screen bg-background-soft">
-
       {/* Page Heading */}
       <section className="bg-background-blush px-6 py-16 sm:px-10 sm:py-20 lg:px-12">
         <div className="mx-auto max-w-7xl text-center">
@@ -212,7 +213,6 @@ function ServicesContent() {
       {/* Services Content */}
       <section className="px-6 py-14 sm:px-10 sm:py-16 lg:px-12 lg:py-20">
         <div className="mx-auto max-w-7xl">
-
           {/* Section Heading */}
           <div className="mb-8 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
             <div>
@@ -234,7 +234,6 @@ function ServicesContent() {
 
           {/* Search and Filters */}
           <div className="mb-10 grid grid-cols-1 gap-4 rounded-2xl border border-border bg-white p-5 sm:grid-cols-2 lg:grid-cols-3">
-
             {/* Search */}
             <div>
               <label
@@ -279,7 +278,12 @@ function ServicesContent() {
               <select
                 id="category-filter"
                 value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
+                onChange={(e) =>
+                  setCategoryOverride({
+                    categoryParam,
+                    value: e.target.value,
+                  })
+                }
                 className="w-full rounded-xl border border-border bg-background-soft px-4 py-3 text-sm text-heading outline-none transition focus:border-primary"
               >
                 <option value="all">All Categories</option>
